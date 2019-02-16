@@ -29,6 +29,7 @@ namespace EyeCrawl {
 	const char* _r16[8] = {"ax","bx","cx","dx","sp","bp","si","di"};
 	const char* _r32[8] = {"eax","ecx","edx","ebx","esp","ebp","esi","edi"};
 	const char* _r64[8] = {"rax","rbx","rcx","rdx","rsp","rbp","rsi","rdi"}; // COMING SOON
+	const char* _conds[16] = {"o","no","b","nb","e","ne","na","a","s","ns","p","np","l","nl","lng","g"};
 }
 
 void EyeCrawl::set(HANDLE handle) {
@@ -40,8 +41,7 @@ void EyeCrawl::set(HANDLE handle) {
 			MODULEINFO info;
 			char szModPath[MAX_PATH];
 			if (GetModuleFileNameExA(handle,hMods[i],szModPath,sizeof(szModPath)) && K32GetModuleInformation(handle,hMods[i],&info,cbNeeded)){
-				if (mCurrent++ == 0)
-					base_address = (UINT_PTR)info.lpBaseOfDll;
+				if (mCurrent++==0) base_address = reinterpret_cast<UINT_PTR>(info.lpBaseOfDll);
 			}
 		}
 	}
@@ -98,6 +98,7 @@ EyeCrawl::instruction* EyeCrawl::disassemble(UINT_PTR addr) {
 		strcpy_s(x->opcode, "inc");
 		strcpy_s(x->data, "inc ");
 		strcat_s(x->data, _r32[b-0x40]);
+		x->r32[0] = (b-0x40);
 		x->size++;
 		set_d(x,r32);
 		return x;
@@ -105,6 +106,7 @@ EyeCrawl::instruction* EyeCrawl::disassemble(UINT_PTR addr) {
 		strcpy_s(x->opcode, "dec");
 		strcpy_s(x->data, "dec ");
 		strcat_s(x->data, _r32[b-0x48]);
+		x->r32[0] = (b-0x48);
 		x->size++;
 		set_d(x,r32);
 		return x;
@@ -112,6 +114,7 @@ EyeCrawl::instruction* EyeCrawl::disassemble(UINT_PTR addr) {
 		strcpy_s(x->opcode, "push");
 		strcpy_s(x->data, "push ");
 		strcat_s(x->data, _r32[b-0x50]);
+		x->r32[0] = (b-0x50);
 		x->size++;
 		set_d(x,r32);
 		return x;
@@ -119,6 +122,7 @@ EyeCrawl::instruction* EyeCrawl::disassemble(UINT_PTR addr) {
 		strcpy_s(x->opcode, "pop");
 		strcpy_s(x->data, "pop ");
 		strcat_s(x->data, _r32[b-0x58]);
+		x->r32[0] = (b-0x58);
 		x->size++;
 		set_d(x,r32);
 		return x;
@@ -627,206 +631,76 @@ EyeCrawl::instruction* EyeCrawl::disassemble(UINT_PTR addr) {
 			set_d(x,rel8);
 			break;
 
-		case 0x0F:
+		case 0x0F:{
 			x->size++;
-			switch (readb(addr+x->size)) {
-				case 0x1F:
-					strcpy_s(x->opcode, "nop dword ptr");
-					set_d(x,r_m16_32);
-					break;
-				case 0x40:
-					strcpy_s(x->opcode, "cmovo");
-					set_d(x,r16_32);
-					set_s(x,r_m16_32);
-					break;
-				case 0x41:
-					strcpy_s(x->opcode, "cmovno");
-					set_d(x,r16_32);
-					set_s(x,r_m16_32);
-					break;
-				case 0x42:
-					strcpy_s(x->opcode, "cmovb");
-					set_d(x,r16_32);
-					set_s(x,r_m16_32);
-					break;
-				case 0x43:
-					strcpy_s(x->opcode, "cmovnb");
-					set_d(x,r16_32);
-					set_s(x,r_m16_32);
-					break;
-				case 0x44:
-					strcpy_s(x->opcode, "cmove");
-					set_d(x,r16_32);
-					set_s(x,r_m16_32);
-					break;
-				case 0x45:
-					strcpy_s(x->opcode, "cmovne");
-					set_d(x,r16_32);
-					set_s(x,r_m16_32);
-					break;
-				case 0x46:
-					strcpy_s(x->opcode, "cmovbe");
-					set_d(x,r16_32);
-					set_s(x,r_m16_32);
-					break;
-				case 0x47:
-					strcpy_s(x->opcode, "cmova");
-					set_d(x,r16_32);
-					set_s(x,r_m16_32);
-					break;
-				case 0x48:
-					strcpy_s(x->opcode, "cmovs");
-					set_d(x,r16_32);
-					set_s(x,r_m16_32);
-					break;
-				case 0x49:
-					strcpy_s(x->opcode, "cmovns");
-					set_d(x,r16_32);
-					set_s(x,r_m16_32);
-					break;
-				case 0x4A:
-					strcpy_s(x->opcode, "cmovp");
-					set_d(x,r16_32);
-					set_s(x,r_m16_32);
-					break;
-				case 0x4B:
-					strcpy_s(x->opcode, "cmovnp");
-					set_d(x,r16_32);
-					set_s(x,r_m16_32);
-					break;
-				case 0x4C:
-					strcpy_s(x->opcode, "cmovl");
-					set_d(x,r16_32);
-					set_s(x,r_m16_32);
-					break;
-				case 0x4D:
-					strcpy_s(x->opcode, "cmovnl");
-					set_d(x,r16_32);
-					set_s(x,r_m16_32);
-					break;
-				case 0x4E:
-					strcpy_s(x->opcode, "cmovng");
-					set_d(x,r16_32);
-					set_s(x,r_m16_32);
-					break;
-				case 0x4F:
-					strcpy_s(x->opcode, "cmovg");
-					set_d(x,r16_32);
-					set_s(x,r_m16_32);
-					break;
-				case 0x80:
-					strcpy_s(x->opcode, "jo"); // jmp if overflow
-					set_d(x,rel32);
-					break;
-				case 0x81:
-					strcpy_s(x->opcode, "jno"); // jmp if not overflow
-					set_d(x,rel32);
-					break;
-				case 0x82:
-					strcpy_s(x->opcode, "jb"); // jmp if below
-					set_d(x,rel32);
-					break;
-				case 0x83:
-					strcpy_s(x->opcode, "jnb"); // jmp if above or equal / not below
-					set_d(x,rel32);
-					break;
-				case 0x84:
-					strcpy_s(x->opcode, "je"); // jmp if equal
-					set_d(x,rel32);
-					break;
-				case 0x85:
-					strcpy_s(x->opcode, "jne"); // jmp if not equal
-					set_d(x,rel32);
-					break;
-				case 0x86:
-					strcpy_s(x->opcode, "jbe"); // jmp if not above / below or equal
-					set_d(x,rel32);
-					break;
-				case 0x87:
-					strcpy_s(x->opcode, "ja"); // jmp if above
-					set_d(x,rel32);
-					break;
-				case 0x88:
-					strcpy_s(x->opcode, "js"); // jmp if sign
-					set_d(x,rel32);
-					break;
-				case 0x89:
-					strcpy_s(x->opcode, "jns"); // jmp if not sign
-					set_d(x,rel32);
-					break;
-				case 0x8A:
-					strcpy_s(x->opcode, "jp"); // jmp if parity
-					set_d(x,rel32);
-					break;
-				case 0x8B:
-					strcpy_s(x->opcode, "jnp"); // jmp if not parity
-					set_d(x,rel32);
-					break;
-				case 0x8C:
-					strcpy_s(x->opcode, "jl"); // jmp if less
-					set_d(x,rel32);
-					break;
-				case 0x8D:
-					strcpy_s(x->opcode, "jnl"); // jmp if not less
-					set_d(x,rel32);
-					break;
-				case 0x8E:
-					strcpy_s(x->opcode, "jng"); // jmp if not great
-					set_d(x,rel32);
-					break;
-				case 0x8F:
-					strcpy_s(x->opcode, "jg"); // jmp if greater
-					set_d(x,rel32);
-					break;
-
-				case 0xB6:
-					strcpy_s(x->opcode, "movzx");
-					if (readb(addr+x->size+1) >= 0xC0){
-						set_d(x,r16_32);
-						set_s(x,r8);
-					} else {
-						set_d(x,r16_32);
-						set_s(x,r_m16_32);
-					}
+			unsigned char b=readb(addr+x->size);
+			if (b>=0x40 && b<0x50){
+				strcpy_s(x->opcode, "cmov");
+				strcat_s(x->opcode, _conds[b-0x40]);
+				set_d(x,r16_32);
+				set_s(x,r_m16_32);
 				break;
-
-				case 0xBA:
-					// "0F BA '/7' ib"
-					// 0x20-0x30-0x40, 0x60-0x70-0x80, 0xA0-0xB0-0xC0
-					// has two modes (bt/btr)
-					if ((readb(addr+x->size+1) / 0x20) % 2!=0){
-						unsigned char m=((readb(addr+x->size+1) % 0x20) / 8);
-						switch (m) {
-							case 0:
-								strcpy_s(x->opcode, "bt");
-								set_d(x,r_m16_32);
-								set_s(x,imm8);
-								break;
-							case 1:
-								strcpy_s(x->opcode, "bts");
-								set_d(x,r_m16_32);
-								set_s(x,imm8);
-								break;
-							case 2:
-								strcpy_s(x->opcode, "btr");
-								set_d(x,r_m16_32);
-								set_s(x,imm8);
-								break;
-							case 3:
-								strcpy_s(x->opcode, "btc");
-								set_d(x,r_m16_32);
-								set_s(x,imm8);
-							break;
+			} else if (b>=0x80 && b<0x90){
+				strcpy_s(x->opcode, "j");
+				strcat_s(x->opcode, _conds[b-0x80]);
+				set_d(x,rel32);
+				break;
+			} else {
+				switch (b) {
+					case 0x1F:
+						strcpy_s(x->opcode, "nop dword ptr");
+						set_d(x,r_m16_32);
+						break;
+					
+					case 0xB6:
+						strcpy_s(x->opcode, "movzx");
+						if (readb(addr+x->size+1) >= 0xC0){
+							set_d(x,r16_32);
+							set_s(x,r8);
+						} else {
+							set_d(x,r16_32);
+							set_s(x,r_m16_32);
 						}
-					}
-				break;
-				case 0xBB:
-					strcpy_s(x->opcode, "btc");
-					set_d(x,r_m16_32);	// BTC r/m16, r16
-					set_s(x,r16_32);	// BTC r/m32, r32
-				break;
+					break;
+
+					case 0xBA:
+						// "0F BA '/7' ib"
+						// 0x20-0x30-0x40, 0x60-0x70-0x80, 0xA0-0xB0-0xC0
+						// has two modes (bt/btr)
+						if ((readb(addr+x->size+1) / 0x20) % 2!=0){
+							unsigned char m=((readb(addr+x->size+1) % 0x20) / 8);
+							switch (m) {
+								case 0:
+									strcpy_s(x->opcode, "bt");
+									set_d(x,r_m16_32);
+									set_s(x,imm8);
+									break;
+								case 1:
+									strcpy_s(x->opcode, "bts");
+									set_d(x,r_m16_32);
+									set_s(x,imm8);
+									break;
+								case 2:
+									strcpy_s(x->opcode, "btr");
+									set_d(x,r_m16_32);
+									set_s(x,imm8);
+									break;
+								case 3:
+									strcpy_s(x->opcode, "btc");
+									set_d(x,r_m16_32);
+									set_s(x,imm8);
+								break;
+							}
+						}
+					break;
+					case 0xBB:
+						strcpy_s(x->opcode, "btc");
+						set_d(x,r_m16_32);	// BTC r/m16, r16
+						set_s(x,r16_32);	// BTC r/m32, r32
+					break;
+				}
 			}
-		break;
+		} break;
 
 		case 0xF0:
 			x->size++;
