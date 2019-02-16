@@ -1504,6 +1504,10 @@ bool EyeCrawl::util::vfree(UINT_PTR address, ULONG_PTR size) {
 	return VirtualFreeEx(proc,reinterpret_cast<void*>(address),size,MEM_RELEASE);
 }
 
+// If you're going to steal this function and
+// claim it as your own, at least know how tf it works.
+// Thanks, and give credit to static (static#8737)
+// 
 EyeCrawl::results EyeCrawl::util::scan(UINT_PTR begin, UINT_PTR end, const char* aob, const char* mask) {
 	HANDLE self				= GetCurrentProcess();
 	int oldpriority			= GetThreadPriority(self);
