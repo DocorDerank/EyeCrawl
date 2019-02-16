@@ -634,6 +634,86 @@ EyeCrawl::instruction* EyeCrawl::disassemble(UINT_PTR addr) {
 					strcpy_s(x->opcode, "nop dword ptr");
 					set_d(x,r_m16_32);
 					break;
+				case 0x40:
+					strcpy_s(x->opcode, "cmovo");
+					set_d(x,r16_32);
+					set_s(x,r_m16_32);
+					break;
+				case 0x41:
+					strcpy_s(x->opcode, "cmovno");
+					set_d(x,r16_32);
+					set_s(x,r_m16_32);
+					break;
+				case 0x42:
+					strcpy_s(x->opcode, "cmovb");
+					set_d(x,r16_32);
+					set_s(x,r_m16_32);
+					break;
+				case 0x43:
+					strcpy_s(x->opcode, "cmovnb");
+					set_d(x,r16_32);
+					set_s(x,r_m16_32);
+					break;
+				case 0x44:
+					strcpy_s(x->opcode, "cmove");
+					set_d(x,r16_32);
+					set_s(x,r_m16_32);
+					break;
+				case 0x45:
+					strcpy_s(x->opcode, "cmovne");
+					set_d(x,r16_32);
+					set_s(x,r_m16_32);
+					break;
+				case 0x46:
+					strcpy_s(x->opcode, "cmovbe");
+					set_d(x,r16_32);
+					set_s(x,r_m16_32);
+					break;
+				case 0x47:
+					strcpy_s(x->opcode, "cmova");
+					set_d(x,r16_32);
+					set_s(x,r_m16_32);
+					break;
+				case 0x48:
+					strcpy_s(x->opcode, "cmovs");
+					set_d(x,r16_32);
+					set_s(x,r_m16_32);
+					break;
+				case 0x49:
+					strcpy_s(x->opcode, "cmovns");
+					set_d(x,r16_32);
+					set_s(x,r_m16_32);
+					break;
+				case 0x4A:
+					strcpy_s(x->opcode, "cmovp");
+					set_d(x,r16_32);
+					set_s(x,r_m16_32);
+					break;
+				case 0x4B:
+					strcpy_s(x->opcode, "cmovnp");
+					set_d(x,r16_32);
+					set_s(x,r_m16_32);
+					break;
+				case 0x4C:
+					strcpy_s(x->opcode, "cmovl");
+					set_d(x,r16_32);
+					set_s(x,r_m16_32);
+					break;
+				case 0x4D:
+					strcpy_s(x->opcode, "cmovnl");
+					set_d(x,r16_32);
+					set_s(x,r_m16_32);
+					break;
+				case 0x4E:
+					strcpy_s(x->opcode, "cmovng");
+					set_d(x,r16_32);
+					set_s(x,r_m16_32);
+					break;
+				case 0x4F:
+					strcpy_s(x->opcode, "cmovg");
+					set_d(x,r16_32);
+					set_s(x,r_m16_32);
+					break;
 				case 0x80:
 					strcpy_s(x->opcode, "jo"); // jmp if overflow
 					set_d(x,rel32);
