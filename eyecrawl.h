@@ -180,6 +180,9 @@ namespace EyeCrawl {
 		// or the function it is calling(loc=false).
 		UINT_PTR nextcall(UINT_PTR, dir, bool loc);
 
+		// Determines calling convention of a function
+		std::string calltype(UINT_PTR);
+
 		// Scans memory for an array of bytes (AOB)
 		// Extremely efficient
 		// Use base_start() and base_end()
