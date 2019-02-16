@@ -30,10 +30,14 @@ int main(){
 		start = readproto;
 		for (int i=0; i<140; i++){
 			EyeCrawl::pinstruction x = EyeCrawl::disassemble(start);
-			if (x->r32[0] == R_ESI){
+			if (x->r32[0] == R_ESI){ // check if instruction uses ESI
 				char spaces[40];
 				spaces[0] = '\0';
 				for (int j=lstrlenA(x->data); j<40; j++) strcat_s(spaces," ");
+				
+				// display the assembly code
+				// and the offset from ESI register
+				// which is a Proto value
 				printf("%s%s// %i\n", x->data, spaces, x->offset);
 			}
       			start += x->size; // move onto next instruction
