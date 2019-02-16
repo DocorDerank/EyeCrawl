@@ -1769,24 +1769,6 @@ UINT_PTR EyeCrawl::util::debug32(UINT_PTR address, UCHAR r32, int offset) {
 	return (value==mask)?0:value;
 }
 
-EyeCrawl::util::ctype tconv(const char* s_convention) {
-	if (strcmp(s_convention,"cdecl")==0 ||
-		strcmp(s_convention,"__cdecl")==0)
-		return EyeCrawl::util::ctype::c_cdecl;
-	if (strcmp(s_convention,"stdcall")==0 ||
-		strcmp(s_convention,"__stdcall")==0)
-		return EyeCrawl::util::ctype::c_stdcall;
-	if (strcmp(s_convention,"fastcall")==0 ||
-		strcmp(s_convention,"__fastcall")==0)
-		return EyeCrawl::util::ctype::c_fastcall;
-	if (strcmp(s_convention,"thiscall")==0 ||
-		strcmp(s_convention,"__thiscall")==0)
-		return EyeCrawl::util::ctype::c_thiscall;
-	if (strcmp(s_convention,"assume")==0)
-		return EyeCrawl::util::ctype::assume;
-	return EyeCrawl::util::ctype::none;
-}
-
 std::string EyeCrawl::util::calltype(UINT_PTR func) {
 	std::string convention = "unknown";
 	short cleanup=fretn(func),cur_instr=0;
