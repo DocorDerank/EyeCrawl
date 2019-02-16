@@ -5,16 +5,21 @@ Didn't even realize it'd work as good as it is today.
 
 The goal of this project was not only to convert bytes to instructions,
 but to get the offsets of registers, in order to dump structs.
-I believe this solves that.
+It does just that.
 
-It also allows you to analyze the first or second operand of the
-instruction for 8/16/32 bit values.
-If you wanted to capture every instruction starting with an esi register
-or an offset of esi in a function, this can do just that.
 
-So if this was ever a struggle to you, say no more.
-Although this is WIP and limited(It does not have every instruction yet)
-this is still a functional disassembler that you can easily include.
+It also allows you to easily access 8/16/32 bit values in
+both the first or second operand of the instruction,
+opening up huge possibilities, such as checking if an
+ECX or EDX register was used without being pushed,
+allowing you one way to identify a calling convention.
+
+If you wanted to debug an address and view the contents of any
+register or any offset of that register,
+simply hook up the debug function and have your result.
+
+Although this is WIP/limited(does not have every instruction yet)
+this is still very functional.
 
 Please give credit to static/THEDOOMED/me.
 
@@ -35,6 +40,12 @@ Or, to readout an entire function, with multiple display options:
 int ninstructions = 20;
 std::string data = disassemble(0xDEADBEEF, ninstructions, info_mode::show_ioffsets);
 printf("Disassembly:\n\n%s\n", data.c_str());
+
+OR, say you wanna debug a function and get the first arg passed to it:
+printf("Lua State: %08X.\n", util::debug32(aslr(0x7F1F40)+6,R_EBP,8));
+
+(Notice memcheck wont shut you down for this as it is swapped out immediately after)
+(Thank you RoboMat, this gettop idea works pretty well)
 
 It's up to you how you use this.
 More tutorials soon to come...
