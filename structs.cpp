@@ -21,9 +21,9 @@ int main(){
 	} else {
 		EyeCrawl::set(handle);
     
-    UINT_PTR gettop = EyeCrawl::aslr(0x7F1F40);
-    UINT_PTR readproto = EyeCrawl::aslr(0x65A7E0);
-    UINT_PTR start;
+    		UINT_PTR gettop = EyeCrawl::aslr(0x7F1F40);
+    		UINT_PTR readproto = EyeCrawl::aslr(0x65A7E0);
+    		UINT_PTR start;
     
 		printf("readproto:\n\n");
     
@@ -36,7 +36,7 @@ int main(){
 				for (int j=lstrlenA(x->data); j<40; j++) strcat_s(spaces," ");
 				printf("%s%s// %i\n", x->data, spaces, x->offset);
 			}
-      start += x->size; // move onto next instruction
+      			start += x->size; // move onto next instruction
 			delete x;
 		}
 
@@ -46,15 +46,15 @@ int main(){
 		start = gettop;
 		for (int i=0,j=0; i<5; i++){
 			EyeCrawl::pinstruction x = EyeCrawl::disassemble(start);
-      // ignore the (register)=lua_state instruction
+      			// ignore the (register)=lua_state instruction
 			if (x->r32[1] != R_EBP && x->offset > 0){
-        // first mov instruction is for lua state top
+        			// first mov instruction is for lua state top
 				if (j == 0) top = x->offset;
-        // second one subtracts lua state base
+        			// second one subtracts lua state base
 				if (j == 1) base = x->offset;
 				j++;
 			}
-      start += x->size; // move onto next instruction
+      			start += x->size; // move onto next instruction
 			delete x;
 		}
 
