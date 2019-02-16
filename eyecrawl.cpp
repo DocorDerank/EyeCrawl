@@ -1770,34 +1770,50 @@ UINT_PTR EyeCrawl::util::debug32(UINT_PTR address, UCHAR r32, int offset) {
 }
 
 std::string EyeCrawl::util::calltype(UINT_PTR func) {
-	std::string convention = "unknown";
-	short cleanup=fretn(func),cur_instr=0;
-	if (cleanup == 0) convention = "cdecl";
-	else			  convention = "stdcall";
+	std::string			convention = "unknown";
+	UINT_PTR			at = func,
+						eof = (func+fsize(func)),
+						cleanup = fretn(func),
+						cur_instr = 0;
+	bool				local_stack = false,
+						ecx = false,
+						ecx_abused = false;
 
-	UINT_PTR at=func,eof=(func+fsize(func));
+	if (cleanup == 0)	convention = "cdecl";
+	else				convention = "stdcall";
+
+	std::vector<UCHAR>vars;
 	while (at < eof){
 		cur_instr++;
 		pinstruction i = disassemble(at);
-		if (cur_instr == 3){
-			if (strfind(i->data,"sub esp")){
-				if (i->v8 == 0x10) {
-					convention = "fastcall";
-					break;
-				}
-			}
+		if (strfind(i->data,"push ecx")) ecx=true;
+		if (strfind(i->data,",ecx") || strfind(i->data,",[ecx")){
+			if (!ecx)
+				ecx_abused=true;
 		}
-		if (i->r32[0] == R_EBP || i->r32[1] == R_EBP){
-			if (i->offset == (UCHAR)(256-0x8))
-				convention = "thiscall";
-			if (i->offset == (UCHAR)(256-0x10)){
-				convention = "fastcall";
-				break;
-			}
+		if (cur_instr == 3){
+			if (strfind(i->data,"sub esp"))
+				if (i->v8 == 0x10)
+					local_stack = true;
+		}
+		if (local_stack){
+			if (i->r32[0] == R_EBP || i->r32[1] == R_EBP)
+				if (i->offset >= 0x80 && (256-i->offset) >= 0x8)
+					vars.push_back((UCHAR)(256-i->offset));
 		}
 		at += i->size;
 		delete i;
 	}
+
+	if (vars.size() > 0 && !ecx_abused) {
+		if (vars[0] == 0x8 || vars[1] == 0x8)
+			convention = "thiscall";
+		if (vars[0] == 0x10 || vars[1] == 0x10){
+			convention = "fastcall";
+			return convention;
+		}
+	}
+
 	return convention;
 }
 
