@@ -1504,10 +1504,6 @@ bool EyeCrawl::util::vfree(UINT_PTR address, ULONG_PTR size) {
 	return VirtualFreeEx(proc,reinterpret_cast<void*>(address),size,MEM_RELEASE);
 }
 
-// If you're going to steal this function and
-// claim it as your own, at least know how tf it works.
-// Thanks, and give credit to static (static#8737)
-// 
 EyeCrawl::results EyeCrawl::util::scan(UINT_PTR begin, UINT_PTR end, const char* aob, const char* mask) {
 	HANDLE self				= GetCurrentProcess();
 	int oldpriority			= GetThreadPriority(self);
@@ -1567,9 +1563,9 @@ bool EyeCrawl::util::isepilogue(UINT_PTR address) {
 }
 
 UINT_PTR EyeCrawl::util::nextprologue(UINT_PTR address, dir direction, bool aligned){
-	UINT_PTR at = address;
+	UINT_PTR at=address,count=0;
 	while (!isprologue(at)){
-		if ((at-address) < -0xFFFF || (at-address) > 0xFFFF) break;
+		if (count++ > 0xFFFF) break;
 		if (direction == dir::ahead)  if (!aligned) at++; else at += 16;
 		if (direction == dir::behind) if (!aligned) at--; else at -= 16;
 	}
@@ -1577,9 +1573,9 @@ UINT_PTR EyeCrawl::util::nextprologue(UINT_PTR address, dir direction, bool alig
 }
 
 UINT_PTR EyeCrawl::util::nextepilogue(UINT_PTR address, dir direction){
-	UINT_PTR at = address;
+	UINT_PTR at=address,count=0;
 	while (!isepilogue(at)){
-		if ((at-address) < -0xFFFF || (at-address) > 0xFFFF) break;
+		if (count++ > 0xFFFF) break;
 		if (direction == dir::ahead)  at++;
 		if (direction == dir::behind) at--;
 	}
@@ -1590,7 +1586,7 @@ UINT_PTR EyeCrawl::util::nextepilogue(UINT_PTR address, dir direction){
 // go backwards from there till we reach
 // the last epilogue of the current function
 UINT_PTR EyeCrawl::util::getepilogue(UINT_PTR func) {
-	return nextepilogue(nextprologue(func+1,dir::ahead,true), dir::behind);
+	return nextepilogue(nextprologue(func+16,dir::ahead,true), dir::behind);
 }
 
 short EyeCrawl::util::fretn(UINT_PTR func) {
@@ -1772,4 +1768,56 @@ UINT_PTR EyeCrawl::util::debug32(UINT_PTR address, UCHAR r32, int offset) {
 	vfree(trace_loc,4);
 	return (value==mask)?0:value;
 }
+
+EyeCrawl::util::ctype tconv(const char* s_convention) {
+	if (strcmp(s_convention,"cdecl")==0 ||
+		strcmp(s_convention,"__cdecl")==0)
+		return EyeCrawl::util::ctype::c_cdecl;
+	if (strcmp(s_convention,"stdcall")==0 ||
+		strcmp(s_convention,"__stdcall")==0)
+		return EyeCrawl::util::ctype::c_stdcall;
+	if (strcmp(s_convention,"fastcall")==0 ||
+		strcmp(s_convention,"__fastcall")==0)
+		return EyeCrawl::util::ctype::c_fastcall;
+	if (strcmp(s_convention,"thiscall")==0 ||
+		strcmp(s_convention,"__thiscall")==0)
+		return EyeCrawl::util::ctype::c_thiscall;
+	if (strcmp(s_convention,"assume")==0)
+		return EyeCrawl::util::ctype::assume;
+	return EyeCrawl::util::ctype::none;
+}
+
+std::string EyeCrawl::util::calltype(UINT_PTR func) {
+	std::string convention = "unknown";
+	short cleanup=fretn(func),cur_instr=0;
+	if (cleanup == 0) convention = "cdecl";
+	else			  convention = "stdcall";
+
+	UINT_PTR at=func,eof=(func+fsize(func));
+	while (at < eof){
+		cur_instr++;
+		pinstruction i = disassemble(at);
+		if (cur_instr == 3){
+			if (strfind(i->data,"sub esp")){
+				if (i->v8 == 0x10) {
+					convention = "fastcall";
+					break;
+				}
+			}
+		}
+		if (i->r32[0] == R_EBP || i->r32[1] == R_EBP){
+			if (i->offset == (UCHAR)(256-0x8))
+				convention = "thiscall";
+			if (i->offset == (UCHAR)(256-0x10)){
+				convention = "fastcall";
+				break;
+			}
+		}
+		at += i->size;
+		delete i;
+	}
+	return convention;
+}
+
+
 
