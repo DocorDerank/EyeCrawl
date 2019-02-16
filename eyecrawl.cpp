@@ -25,11 +25,16 @@
 namespace EyeCrawl {
 	HANDLE proc;
 	UINT_PTR base_address;
+	UINT_PTR base_size;
 	const char* _r8[8]	= {"al","cl","dl","bl","ah","ch","dh","bh"};
 	const char* _r16[8] = {"ax","bx","cx","dx","sp","bp","si","di"};
 	const char* _r32[8] = {"eax","ecx","edx","ebx","esp","ebp","esi","edi"};
 	const char* _r64[8] = {"rax","rbx","rcx","rdx","rsp","rbp","rsi","rdi"}; // COMING SOON
 	const char* _conds[16] = {"o","no","b","nb","e","ne","na","a","s","ns","p","np","l","nl","lng","g"};
+
+	namespace util {
+		const long buffersize = (64 * 64 * 64);
+	}
 }
 
 void EyeCrawl::set(HANDLE handle) {
@@ -41,10 +46,25 @@ void EyeCrawl::set(HANDLE handle) {
 			MODULEINFO info;
 			char szModPath[MAX_PATH];
 			if (GetModuleFileNameExA(handle,hMods[i],szModPath,sizeof(szModPath)) && K32GetModuleInformation(handle,hMods[i],&info,cbNeeded)){
-				if (mCurrent++==0) base_address = reinterpret_cast<UINT_PTR>(info.lpBaseOfDll);
+				if (mCurrent++==0){
+					base_address = reinterpret_cast<UINT_PTR>(info.lpBaseOfDll);
+					base_size = reinterpret_cast<UINT_PTR>(&info.SizeOfImage);
+				}
 			}
 		}
 	}
+}
+
+HANDLE EyeCrawl::get() {
+	return proc;
+}
+
+UINT_PTR EyeCrawl::base_start() {
+	return base_address;
+}
+
+UINT_PTR EyeCrawl::base_end() {
+	return base_address + base_size;
 }
 
 UINT_PTR EyeCrawl::aslr(UINT_PTR addr) {
@@ -55,39 +75,111 @@ UINT_PTR EyeCrawl::non_aslr(UINT_PTR addr) {
 	return (addr + 0x400000 - base_address);
 }
 
-unsigned char EyeCrawl::readb(UINT_PTR addr) {
-	if (DLL_MODE) return *(unsigned char*)addr;
-	unsigned char buffer = 0;
+UCHAR EyeCrawl::readb(UINT_PTR addr) {
+	UCHAR buffer = 0;
+	ReadProcessMemory(proc,reinterpret_cast<void*>(addr),&buffer,1,0);
+	return buffer;
+}
+
+char EyeCrawl::readc(UINT_PTR addr) {
+	char buffer = 0;
 	ReadProcessMemory(proc,reinterpret_cast<void*>(addr),&buffer,1,0);
 	return buffer;
 }
 
 USHORT EyeCrawl::readus(UINT_PTR addr) {
-	if (DLL_MODE) return *(USHORT*)addr;
 	USHORT buffer = 0;
 	ReadProcessMemory(proc,reinterpret_cast<void*>(addr),&buffer,2,0);
 	return buffer;
 }
 
-int EyeCrawl::readi(UINT_PTR addr) {
-	if (DLL_MODE) return *(int*)addr;
-	int buffer = 0;
-	ReadProcessMemory(proc,reinterpret_cast<void*>(addr),&buffer,4,0);
+short EyeCrawl::reads(UINT_PTR addr) {
+	short buffer = 0;
+	ReadProcessMemory(proc,reinterpret_cast<void*>(addr),&buffer,2,0);
 	return buffer;
 }
 
 UINT_PTR EyeCrawl::readui(UINT_PTR addr) {
-	if (DLL_MODE) return *(int*)addr;
 	UINT_PTR buffer = 0;
 	ReadProcessMemory(proc,reinterpret_cast<void*>(addr),&buffer,4,0);
 	return buffer;
 }
 
+int EyeCrawl::readi(UINT_PTR addr) {
+	int buffer = 0;
+	ReadProcessMemory(proc,reinterpret_cast<void*>(addr),&buffer,4,0);
+	return buffer;
+}
+
+float EyeCrawl::readf(UINT_PTR addr) {
+	float buffer = 0;
+	ReadProcessMemory(proc,reinterpret_cast<void*>(addr),&buffer,4,0);
+	return buffer;
+}
+
+double EyeCrawl::readd(UINT_PTR addr) {
+	double buffer = 0;
+	ReadProcessMemory(proc,reinterpret_cast<void*>(addr),&buffer,8,0);
+	return buffer;
+}
+
+std::string EyeCrawl::sreads(UINT_PTR addr, int count) {
+	std::string read = "";
+	int reader = 0, size = count;
+	if (count == 0) size = STR_READ_MAX;
+	while (reader < size) {
+		char c = readc(addr+reader++);
+		if (c >= 0x20 && c <= 0x7E)
+			read += c;
+		else
+			break;
+	}
+	return read;
+}
+
+bool EyeCrawl::write(UINT_PTR addr, UCHAR v){
+	return WriteProcessMemory(proc,reinterpret_cast<void*>(addr),&v,1,0);
+}
+
+bool EyeCrawl::write(UINT_PTR addr, char v){
+	return WriteProcessMemory(proc,reinterpret_cast<void*>(addr),&v,1,0);
+}
+
+bool EyeCrawl::write(UINT_PTR addr, USHORT v){
+	return WriteProcessMemory(proc,reinterpret_cast<void*>(addr),&v,2,0);
+}
+
+bool EyeCrawl::write(UINT_PTR addr, short v){
+	return WriteProcessMemory(proc,reinterpret_cast<void*>(addr),&v,2,0);
+}
+
+bool EyeCrawl::write(UINT_PTR addr, UINT_PTR v){
+	return WriteProcessMemory(proc,reinterpret_cast<void*>(addr),&v,4,0);
+}
+
+bool EyeCrawl::write(UINT_PTR addr, int v){
+	return WriteProcessMemory(proc,reinterpret_cast<void*>(addr),&v,4,0);
+}
+
+bool EyeCrawl::write(UINT_PTR addr, float v){
+	return WriteProcessMemory(proc,reinterpret_cast<void*>(addr),&v,4,0);
+}
+
+bool EyeCrawl::write(UINT_PTR addr, double v){
+	return WriteProcessMemory(proc,reinterpret_cast<void*>(addr),&v,8,0);
+}
+
+bool EyeCrawl::write(UINT_PTR addr, std::string v){
+	return WriteProcessMemory(proc,reinterpret_cast<void*>(addr),v.c_str(),v.length(),0);
+}
+
+
 EyeCrawl::instruction* EyeCrawl::disassemble(UINT_PTR addr) {
 	instruction* x = new instruction();
+	x->address = addr;
 	if (proc == INVALID_HANDLE_VALUE) return x; // return 0 size instruction (this is bad!!!!)
 
-	unsigned char b=readb(addr), single_reg=0;
+	UCHAR b=readb(addr), single_reg=0;
 
 	// For single-byte instructions,
 	// we will just use math to calculate
@@ -633,7 +725,7 @@ EyeCrawl::instruction* EyeCrawl::disassemble(UINT_PTR addr) {
 
 		case 0x0F:{
 			x->size++;
-			unsigned char b=readb(addr+x->size);
+			UCHAR b=readb(addr+x->size);
 			if (b>=0x40 && b<0x50){
 				strcpy_s(x->opcode, "cmov");
 				strcat_s(x->opcode, _conds[b-0x40]);
@@ -668,7 +760,7 @@ EyeCrawl::instruction* EyeCrawl::disassemble(UINT_PTR addr) {
 						// 0x20-0x30-0x40, 0x60-0x70-0x80, 0xA0-0xB0-0xC0
 						// has two modes (bt/btr)
 						if ((readb(addr+x->size+1) / 0x20) % 2!=0){
-							unsigned char m=((readb(addr+x->size+1) % 0x20) / 8);
+							UCHAR m=((readb(addr+x->size+1) % 0x20) / 8);
 							switch (m) {
 								case 0:
 									strcpy_s(x->opcode, "bt");
@@ -797,7 +889,7 @@ EyeCrawl::instruction* EyeCrawl::disassemble(UINT_PTR addr) {
 	}
 
 	x->size++;
-	unsigned char c,mode20,mode40,i,j,oldj=0,skip=0;
+	UCHAR c,mode20,mode40,i,j,oldj=0,skip=0;
 	strcpy_s(x->data, x->opcode);
 	if (!single_reg) strcat_s(x->data, " ");
 
@@ -826,7 +918,7 @@ EyeCrawl::instruction* EyeCrawl::disassemble(UINT_PTR addr) {
 	// the asm to readable text
 	//
 	auto w_offset8=[&x,&cnv,&addr](){
-		unsigned char v=readb(addr+x->size);
+		UCHAR v=readb(addr+x->size);
 		x->offset = v;
 		if (v <= 0x7F){
 			sprintf_s(cnv,"%02X",v);
@@ -888,7 +980,7 @@ EyeCrawl::instruction* EyeCrawl::disassemble(UINT_PTR addr) {
 
 		// Check 8bit value on the next byte
 		case _m::imm8:{
-			unsigned char v = readb(addr+x->size);
+			UCHAR v = readb(addr+x->size);
 			x->v8 = v;
 			sprintf_s(cnv,"%02X",v);
 			strcat_s(x->data,cnv);
@@ -912,7 +1004,7 @@ EyeCrawl::instruction* EyeCrawl::disassemble(UINT_PTR addr) {
 		} break;
 
 		case _m::rel8:{
-			unsigned char v = ((addr+x->size+1) + readb(addr+x->size));
+			UCHAR v = ((addr+x->size+1) + readb(addr+x->size));
 			x->v8 = v;
 			sprintf_s(cnv,"%02X",v);
 			strcat_s(x->data,cnv);
@@ -971,13 +1063,13 @@ EyeCrawl::instruction* EyeCrawl::disassemble(UINT_PTR addr) {
 			// This is done because a previous byte could
 			// represent the second operand, which
 			// we need to know, if it is a register
-			unsigned char	can_solve_second_r8op = 
-									(x->src==_m::r8),
-							can_solve_second_r16op = 
-									(x->src==_m::r16),
-							can_solve_second_r32op =
-									(x->src==_m::r32 ||
-									x->src==_m::r16_32);
+			UCHAR	can_solve_second_r8op = 
+							(x->src==_m::r8),
+					can_solve_second_r16op = 
+							(x->src==_m::r16),
+					can_solve_second_r32op =
+							(x->src==_m::r32 ||
+							x->src==_m::r16_32);
 			// For any case, we need to skip the second
 			// operand check
 			skip = (can_solve_second_r8op ||
@@ -1101,7 +1193,7 @@ EyeCrawl::instruction* EyeCrawl::disassemble(UINT_PTR addr) {
 		switch (x->src) {
 			// Check 8bit value on the next byte
 			case _m::imm8:{
-				unsigned char v = readb(addr+x->size);
+				UCHAR v = readb(addr+x->size);
 				x->v8 = v;
 				sprintf_s(cnv,"%02X",v);
 				strcat_s(x->data,cnv);
@@ -1125,7 +1217,7 @@ EyeCrawl::instruction* EyeCrawl::disassemble(UINT_PTR addr) {
 			} break;
 
 			case _m::rel8:{
-				unsigned char v = ((addr+x->size+1) + readb(addr+x->size));
+				UCHAR v = ((addr+x->size+1) + readb(addr+x->size));
 				x->v8 = v;
 				sprintf_s(cnv,"%02X",v);
 				strcat_s(x->data,cnv);
@@ -1321,9 +1413,9 @@ std::string EyeCrawl::disassemble(UINT_PTR addr, int count, info_mode extra_info
 
 				char c[4];
 				if (extra_info == show_offsets)
-					sprintf_s(c,"%02X",(unsigned char)i->offset);
+					sprintf_s(c,"%02X",(UCHAR)i->offset);
 				else if (extra_info == show_ioffsets)
-					sprintf_s(c,"%i",(unsigned char)i->offset);
+					sprintf_s(c,"%i",(UCHAR)i->offset);
 				str += spaces;
 				str += " // ";
 				str += c;
@@ -1344,7 +1436,7 @@ std::string EyeCrawl::disassemble(UINT_PTR addr, int count, info_mode extra_info
 				spaces[0] = '\0';
 				for (int j=lstrlenA(i->data); j<44; j++) strcat_s(spaces," ");
 
-				sprintf_s(c,"arg_%i",(unsigned char)((i->offset-0x8)/0x4));
+				sprintf_s(c,"arg_%i",(UCHAR)((i->offset-0x8)/0x4));
 				str = replaceex(str,"ebp+??","....xx",c);
 				str += spaces;
 				str += " // ";
@@ -1356,7 +1448,7 @@ std::string EyeCrawl::disassemble(UINT_PTR addr, int count, info_mode extra_info
 				spaces[0] = '\0';
 				for (int j=lstrlenA(i->data); j<44; j++) strcat_s(spaces," ");
 				
-				sprintf_s(c,"var_%i",(unsigned char)((UCHAR_MAX-i->offset-1)/0x4));
+				sprintf_s(c,"var_%i",(UCHAR)((UCHAR_MAX-i->offset-1)/0x4));
 				str = replaceex(str,"ebp-??","....xx",c);
 				str += spaces;
 				str += " // ";
@@ -1371,10 +1463,10 @@ std::string EyeCrawl::disassemble(UINT_PTR addr, int count, info_mode extra_info
 				for (int j=lstrlenA(i->data); j<44; j++) strcat_s(spaces," ");
 				
 				if (found_var){
-					sprintf_s(c,"var_%i",(unsigned char)((UCHAR_MAX-i->offset-1)/0x4));
+					sprintf_s(c,"var_%i",(UCHAR)((UCHAR_MAX-i->offset-1)/0x4));
 					str = replaceex(str,"ebp-??","....xx",c);
 				} else if (found_arg){
-					sprintf_s(c,"arg_%i",(unsigned char)((i->offset-0x8)/0x4));
+					sprintf_s(c,"arg_%i",(UCHAR)((i->offset-0x8)/0x4));
 					str = replaceex(str,"ebp+??","....xx",c);
 				}
 
@@ -1399,5 +1491,281 @@ std::string EyeCrawl::disassemble(UINT_PTR addr, int count, info_mode extra_info
 		delete i;
 	}
 	return str;
+}
+
+// -----------------------------------------------------------
+// ---------------- EyeCrawl Memory Utility ------------------
+// -----------------------------------------------------------
+UINT_PTR EyeCrawl::util::valloc(ULONG_PTR size) {
+	return (UINT_PTR)VirtualAllocEx(proc,reinterpret_cast<void*>(0),size,0x1000|0x2000,0x40);
+}
+
+bool EyeCrawl::util::vfree(UINT_PTR address, ULONG_PTR size) {
+	return VirtualFreeEx(proc,reinterpret_cast<void*>(address),size,MEM_RELEASE);
+}
+
+EyeCrawl::results EyeCrawl::util::scan(UINT_PTR begin, UINT_PTR end, const char* aob, const char* mask) {
+	HANDLE self				= GetCurrentProcess();
+	int oldpriority			= GetThreadPriority(self);
+	SetThreadPriority(self, THREAD_PRIORITY_HIGHEST);
+
+	results	 results_list	= results();
+	UINT_PTR start			= begin,
+			 size			= lstrlenA(mask),
+			 at				= 0;
+	UCHAR* buffer			= new UCHAR[buffersize];
+	while (start < end){
+		if (ReadProcessMemory(proc,(void*)start,buffer,buffersize,0)){
+			__asm push edi
+			__asm mov edi,0
+			__asm jmp L2
+		L1:	__asm inc edi
+			__asm mov at,edi
+			bool match = true;
+			for (int x=0; x<size; x++)
+				if (buffer[at+x]!=aob[x] && mask[x]!='x')
+					match = false;
+			if (match) results_list.push_back(start+at);
+		L2:	__asm cmp edi,buffersize
+			__asm jb L1
+			__asm pop edi
+		}
+		start += (buffersize - size) + 1;
+	}
+	delete[] buffer;
+
+	SetThreadPriority(self, oldpriority);
+	return results_list;
+}
+
+// Simply identifies 3 different function
+// prologues that are most commonly used.
+// 
+// Obviously will not work on a naked
+// function
+// 
+bool EyeCrawl::util::isprologue(UINT_PTR address) {
+	UCHAR	b1=readb(address),
+			b2=readb(address+1),
+			b3=readb(address+2);
+	return	(b1==0x55 && b2==0x8B && b3==0xEC) ||
+			(b1==0x56 && b2==0x8B && b3==0xF1) ||
+			(b1==0x53 && b2==0x8B && b3==0xDC);
+}
+
+// This doesnt even require disassembly
+// Lol
+bool EyeCrawl::util::isepilogue(UINT_PTR address) {
+	UCHAR b1 = readb(address);
+	UCHAR b2 = readb(address+1);
+	return ((b1==0x5D || b1==0x5E) && // pop ebp, or pop esi,
+			(b2==0xC2 || b2==0xC3));  // with a retn or ret XX
+}
+
+UINT_PTR EyeCrawl::util::nextprologue(UINT_PTR address, dir direction, bool aligned){
+	UINT_PTR at = address;
+	while (!isprologue(at)){
+		if ((at-address) < -0xFFFF || (at-address) > 0xFFFF) break;
+		if (direction == dir::ahead)  if (!aligned) at++; else at += 16;
+		if (direction == dir::behind) if (!aligned) at--; else at -= 16;
+	}
+	return at;
+}
+
+UINT_PTR EyeCrawl::util::nextepilogue(UINT_PTR address, dir direction){
+	UINT_PTR at = address;
+	while (!isepilogue(at)){
+		if ((at-address) < -0xFFFF || (at-address) > 0xFFFF) break;
+		if (direction == dir::ahead)  at++;
+		if (direction == dir::behind) at--;
+	}
+	return at+1; // Return the functions retn address
+}
+
+// go forward to the next function, then
+// go backwards from there till we reach
+// the last epilogue of the current function
+UINT_PTR EyeCrawl::util::getepilogue(UINT_PTR func) {
+	return nextepilogue(nextprologue(func+1,dir::ahead,true), dir::behind);
+}
+
+short EyeCrawl::util::fretn(UINT_PTR func) {
+	for (UINT_PTR addr : getepilogues(func)) {
+		if (readb(addr) == 0xC2) {
+			pinstruction i = disassemble(addr);
+			short v = i->v16;
+			delete i;
+			return v;
+		}
+	}
+	return 0;
+}
+
+int EyeCrawl::util::fsize(UINT_PTR func) {
+	UINT_PTR eof = getepilogue(func);
+	if (readb(eof) == 0xC2) eof += 3;
+	if (readb(eof) == 0xC3) eof += 1;
+	int funcSz = (int)(eof-func);
+	if (funcSz < 0) return 0;
+	return funcSz;
+}
+
+EyeCrawl::results EyeCrawl::util::getepilogues(UINT_PTR func) {
+	results r=results();
+	UINT_PTR start=func, end=(start+fsize(func));
+	while (start < end) {
+		start++;
+		if (isepilogue(start)){
+			r.push_back(start+1);
+		}
+	}
+	return r;
+}
+
+// This doesn't necessarily need any
+// disassembling
+EyeCrawl::results EyeCrawl::util::getcalls(UINT_PTR func) {
+	results r=results();
+	UINT_PTR start=func, end=(start+fsize(func));
+	while (start < end) {
+		start++;
+		if (readb(start) == 0xE8){
+			UINT_PTR o = readui(start+1);
+			if (o%16==0 && o>base_start() && o<base_end()){
+				r.push_back((UINT_PTR)o);
+			}
+		}
+	}
+	return r;
+}
+
+UINT_PTR EyeCrawl::util::nextcall(UINT_PTR func,dir d,bool loc){
+	UINT_PTR start=func;
+	while (readb(start) != 0xE8){
+		if (d==dir::ahead)  start++;
+		if (d==dir::behind) start--;
+	}
+	UINT_PTR o = readui(start+1);
+	if (o%16==0 && o>base_start() && o<base_end())
+		if (loc)
+			return (start+o+5);
+		else
+			return start;
+	return 0;
+}
+
+EyeCrawl::util::MEM_PROTECT EyeCrawl::util::vprotect(UINT_PTR location, ULONG_PTR size) {
+	MEM_PROTECT mp = MEM_PROTECT();
+	MEMORY_BASIC_INFORMATION mbi = { 0 };
+	VirtualQueryEx(proc,reinterpret_cast<void*>(location),&mbi,sizeof(mbi));
+	VirtualProtectEx(proc,mbi.BaseAddress,size,PAGE_READWRITE,&mbi.Protect);
+	mp.address = location;
+	mp.size = size;
+	mp.protection_data = mbi;
+	return mp;
+}
+
+void EyeCrawl::util::vrestore(MEM_PROTECT protection) {
+	ULONG_PTR oldProtect;
+	VirtualProtectEx(proc,protection.protection_data.BaseAddress,protection.size,protection.protection_data.Protect,&oldProtect);
+}
+
+UINT_PTR EyeCrawl::util::debug32(UINT_PTR address, UCHAR r32, int offset) {
+	ULONG_PTR size=5,nop=0,isize=0,d=0;
+	UINT_PTR value=0,at=0,mask=0xABCDEF1,
+			 code_loc=valloc(32),
+			 trace_loc=valloc(4);
+
+	// Figure out how many left over bytes
+	// from an instruction we might overwrite
+	// 
+	pinstruction i;
+	i = disassemble(address);
+	while (i->address<(address+size)){
+		isize += i->size;
+		nop = ((i->address+i->size)-(address+size));
+		free(i);
+		i = disassemble(address+isize);
+	}
+	free(i);
+
+	// Get current bytes + bytes from
+	// instruction we might overwrite
+	UCHAR* old_bytes = new UCHAR[size+nop];
+	PMREAD(proc,reinterpret_cast<void*>(address),old_bytes,size+nop,0);
+
+	// Make up our JMP from the address
+	// to our own code
+	UCHAR* inject = new UCHAR[5];
+	memcpy(inject,"\xE9",1);
+	*(UINT_PTR*)(inject+1)=(code_loc-(address+5));
+
+	if (offset == 0){
+		// simply place one instruction to capture 
+		// the value of the register to our readout location
+		write(code_loc+at++,(UCHAR)0x50+r32); // push (r32)
+		switch (r32) {
+			case R_EAX:
+				write(code_loc+at++,(UCHAR)0xA3);
+				break;
+			default:
+				write(code_loc+at++,(UCHAR)0x89); // ecx-edi (0xD,0x15,0x1D,0x25,0x2D . . .)
+				write(code_loc+at++,(UCHAR)0x5+(r32*8));
+			break;
+		}
+		// Trace register to our trace location
+		write(code_loc+at,(int)trace_loc);
+		at += 4;
+		write(code_loc+at++,(UCHAR)0x58+r32); // pop (r32)
+	} else {
+		// or, if we want an offset of a register ...
+		// move the offset into EAX and show the value of EAX
+		// at our readout location
+		write(code_loc+at++,(UCHAR)0x50); // push eax
+		write(code_loc+at++,(UCHAR)0x8B);
+		if (r32 != R_ESP)
+			write(code_loc+at++,(UCHAR)(0x40+r32));
+		else {
+			write(code_loc+at++,(UCHAR)(0x44));
+			write(code_loc+at++,(UCHAR)(0x24));
+		}
+		write(code_loc+at++,(UCHAR)offset);
+		// Trace register to our trace location
+		write(code_loc+at++,(UCHAR)0xA3);
+		write(code_loc+at,(int)trace_loc);
+		at += 4;
+		write(code_loc+at++,(UCHAR)0x58); // pop eax
+	}
+
+	// Put overwritten bytes back (full instruction(s))
+	PMWRITE(proc,reinterpret_cast<void*>(code_loc+at),old_bytes,size+nop,0);
+	at += (size+nop);
+
+	// Place our JMP back
+	write(code_loc+at++,(UCHAR)0xE9);
+	write(code_loc+at,(address+5)-(code_loc+at+4));
+	at += 4;
+
+
+	// Inject the JMP to our own code
+	PMWRITE(proc,reinterpret_cast<void*>(address),inject,size,0);
+	for (int i=0; i<nop; i++) write(address+size+i,(UCHAR)0x90);
+	delete[] inject;
+
+	// Wait for our masked value to be modified
+	// This means something wrote to our location
+	bool modified = false;
+	while (modified == false){
+		Sleep(10);
+		value = readui(trace_loc);
+		modified = (value != mask);
+		if (d++>2000) break; // dont debug for eternity
+	}
+
+	PMWRITE(proc,reinterpret_cast<void*>(address),old_bytes,size+nop,0);
+	delete[] old_bytes;
+	vfree(code_loc,32);
+	vfree(trace_loc,4);
+	return (value==mask)?0:value;
 }
 
