@@ -1,8 +1,33 @@
+// -----------------------------------------------------------
+//  ______                 ____
+// |        \  /   ____   /    \ | ____   ____,           |
+// |____     \/  /_____/ |       |/      /    | \       / |
+// |         /  |        |       |      |     |  \  |  /  |
+// |______  /    \_____/  \____/ |       \____/\  \/ \/   |
+//
+// -----------------------------------------------------------
+// 
+// To start, simply include the EyeCrawl namespace,
+// and after you call OpenProcess on your target program, insert this:
+// EyeCrawl::set(process_handle);
+// 
+// now to read an instruction:
+// pinstruction p = disassemble(0xDEADBEEF);
+// printf("Disassembly: %s\n", p->data);
+// delete p;
+// 
+// Or, to readout an entire function, with multiple display options:
+// int ninstructions = 20;
+// std::string data = disassemble(0xDEADBEEF, ninstructions, info_mode::show_ioffsets);
+// printf("Disassembly:\n\n%s\n", data.c_str());
+// 
+// It's up to you how you use this.
+// More tutorials soon to come...
+// 
 #include "stdafx.h"
 #include "eyecrawl.h"
 #include <TlHelp32.h>
 #include <Psapi.h>
-
 //
 // Things to keep in mind with updating:
 // 
