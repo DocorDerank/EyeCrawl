@@ -76,11 +76,11 @@ namespace EyeCrawl {
 			data[0]		= '\0';
 			size		= 0; // skip over
 			offset		= 0;
-			v8			= 0;
-			v16			= 0;
-			v32			= 0;
+			v8		= 0;
+			v16		= 0;
+			v32		= 0;
 			dest		= none;
-			src			= none;
+			src		= none;
 		}
 	};
 
@@ -100,3 +100,4 @@ namespace EyeCrawl {
 
 
 #endif
+
