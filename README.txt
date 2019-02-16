@@ -1,0 +1,21 @@
+<h1>EyeCrawl<h1><h3> - x86 disassembler</h3>
+
+This is a project I started just a few days ago...
+Didn't even realize it'd work as good as it is today.
+
+The goal of this project was not only to convert bytes to instructions,
+but to get the offsets of registers, for use in analyzing structs/etc.
+
+It also allows you to analyze different segments of the instruction
+such as 8/16/32bit values in the first or second operand of it.
+
+Or, if you wanted to capture every instruction starting with an esi register
+or an offset of esi in a function.
+
+So if this was ever a struggle to you, say no more.
+Although this is still WIP and limited (It does not have all instructions yet)
+this is a functional disassembler I created that you can include in your code.
+
+Please give credit to static/THEDOOMED/(me).
+
+
