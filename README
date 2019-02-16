@@ -42,7 +42,8 @@ std::string data = disassemble(0xDEADBEEF, ninstructions, info_mode::show_ioffse
 printf("Disassembly:\n\n%s\n", data.c_str());
 
 OR, say you wanna debug a function and get the first arg passed to it:
-printf("Lua State: %08X.\n", util::debug32(aslr(0x7F1F40)+6,R_EBP,8));
+UINT_PTR gettop = aslr(0x7F1F40);
+printf("Lua State: %08X.\n", util::debug32(gettop+6,R_EBP,8));
 
 (Notice memcheck wont shut you down for this as it is swapped out immediately after)
 (Thank you RoboMat, this gettop idea works pretty well)
