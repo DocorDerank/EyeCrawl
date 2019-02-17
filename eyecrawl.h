@@ -55,16 +55,14 @@ namespace EyeCrawl {
 		r16,		
 		r32,		
 		r16_32,		
-		r_m8,		
-		r_m16,		
-		r_m32,		
 		r_m16_32,	
 		rel8,		
 		rel16,		
 		rel32,		
 		imm8,		
 		imm16,		
-		imm32		
+		imm32,		
+		rxmm		
 	};
 
 	struct instruction {
@@ -82,10 +80,14 @@ namespace EyeCrawl {
 		int v32;// 32bit value moved into reg32/offset/etc.
 		UINT_PTR offset;// offset value pulled from instruction if there is one
 		UINT_PTR address;// current address of this instruction
+		char mark1[16];// byte ptr/dword ptr/qword ptr for first operand
+		char mark2[16];// same as above but will show for second operand
 
 		instruction() {
 			opcode[0]	= '\0';
 			data[0]		= '\0';
+			mark1[0]	= '\0';
+			mark2[0]	= '\0';
 			size		= 0; // skip over
 			offset		= 0;
 			v8			= 0;
@@ -137,6 +139,9 @@ namespace EyeCrawl {
 			ULONG_PTR size;
 		};
 
+		std::string to_str(UINT_PTR);
+		std::string to_str(UCHAR);
+		UCHAR to_byte(std::string);
 		// Reads the value of a 32bit register, or an
 		// offset of the register, at the given address.
 		// 
@@ -188,7 +193,7 @@ namespace EyeCrawl {
 		// Use base_start() and base_end()
 		// for any x86-related scans
 		// 
-		results scan(UINT_PTR, UINT_PTR, const char*, const char*);
+		results scan(UINT_PTR, UINT_PTR, std::string, const char*);
 	};
 }
 
