@@ -839,6 +839,7 @@ EyeCrawl::instruction* EyeCrawl::disassemble(UINT_PTR addr) {
 							set_d(x,r16_32);
 							set_s(x,r8);
 						} else {
+							strcpy_s(x->mark2, "byte ptr");
 							set_d(x,r16_32);
 							set_s(x,r_m16_32);
 						}
@@ -1009,15 +1010,11 @@ EyeCrawl::instruction* EyeCrawl::disassemble(UINT_PTR addr) {
 	char cnv[16]; // for future values we have to convert to string
 	char second_op[4];
 
-	auto check_mark1 = [&x]() {
+	auto check_mark = [&x]() {
 		if (lstrlenA(x->mark1) > 0){
 			strcat_s(x->data, x->mark1);
 			strcat_s(x->data, " ");
-		}
-	};
-
-	auto check_mark2 = [&x]() {
-		if (lstrlenA(x->mark2) > 0){
+		} else if (lstrlenA(x->mark2) > 0){
 			strcat_s(x->data, x->mark2);
 			strcat_s(x->data, " ");
 		}
@@ -1213,7 +1210,7 @@ EyeCrawl::instruction* EyeCrawl::disassemble(UINT_PTR addr) {
 					strcat_s(x->data, _r32[i]);
 					break;
 				case 2: // 0x80 through 0xBF
-					check_mark1();
+					check_mark();
 					strcat_s(x->data, "[");
 					oldj = j;
 					switch(i){
@@ -1238,7 +1235,7 @@ EyeCrawl::instruction* EyeCrawl::disassemble(UINT_PTR addr) {
 					strcat_s(x->data, "]");
 					break;
 				case 1: // 0x40 through 0x80
-					check_mark1();
+					check_mark();
 					strcat_s(x->data, "[");
 					oldj = j;
 					switch(i){
@@ -1263,7 +1260,7 @@ EyeCrawl::instruction* EyeCrawl::disassemble(UINT_PTR addr) {
 					strcat_s(x->data, "]");
 					break;
 				case 0: // 0x00 through 0x40
-					check_mark1();
+					check_mark();
 					strcat_s(x->data, "[");
 					oldj = j;
 					switch(i){
@@ -1323,11 +1320,6 @@ EyeCrawl::instruction* EyeCrawl::disassemble(UINT_PTR addr) {
 	if (!skip && x->src != _m::none){
 		strcat_s(x->data,",");
 
-		if (lstrlenA(x->mark2) > 0){
-			strcat_s(x->data, x->mark2);
-			strcat_s(x->data, " ");
-		}
-		
 		switch (x->src) {
 			// Check 8bit value on the next byte
 			case _m::imm8:{
@@ -1420,7 +1412,7 @@ EyeCrawl::instruction* EyeCrawl::disassemble(UINT_PTR addr) {
 						strcat_s(x->data,_r32[i]);
 					break;
 					case 2: // 0x80 through 0xBF		[op] eax,[eax+eax*?+????????]
-						check_mark2();
+						check_mark();
 						strcat_s(x->data, "[");
 						switch(i){
 							case 0x4:
@@ -1443,7 +1435,7 @@ EyeCrawl::instruction* EyeCrawl::disassemble(UINT_PTR addr) {
 						strcat_s(x->data, "]");
 					break;
 					case 1: // 0x40 through 0x7F		[op] eax,[eax+eax*?+??]
-						check_mark2();
+						check_mark();
 						strcat_s(x->data, "[");
 						switch(i){
 							case 0x4:
@@ -1464,7 +1456,7 @@ EyeCrawl::instruction* EyeCrawl::disassemble(UINT_PTR addr) {
 						strcat_s(x->data, "]");
 					break;
 					case 0:
-						check_mark2();
+						check_mark();
 						strcat_s(x->data, "[");
 						switch(i){
 							case 0x4:
@@ -1843,7 +1835,7 @@ void EyeCrawl::util::vrestore(MEM_PROTECT protection) {
 
 UINT_PTR EyeCrawl::util::debug32(UINT_PTR address, UCHAR r32, int offset) {
 	ULONG_PTR size=5,nop=0,isize=0,d=0;
-	UINT_PTR value=0,at=0,mask=0xABCDEF1,
+	UINT_PTR value=0,at=0,mask=0xABCDEF9,
 			 code_loc=valloc(32),
 			 trace_loc=valloc(4);
 
