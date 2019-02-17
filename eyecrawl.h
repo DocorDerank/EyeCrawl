@@ -7,6 +7,7 @@
 #define DLL_MODE FALSE
 #define set_d(x,d){ x->dest=d; }
 #define set_s(x,s){ x->src=s;  }
+#define results std::vector<UINT_PTR>
 #define STR_READ_MAX 1024
 #define PMREAD ReadProcessMemory
 #define PMWRITE WriteProcessMemory
@@ -27,8 +28,6 @@ std::string replaceex(std::string str, const char* replace, const char* mask, co
 bool strfind(const char* A, const char* B);
 
 namespace EyeCrawl {
-	typedef std::vector<UINT_PTR>results;
-
 	void set(HANDLE);	// Use for remote application
 	void set();			// Use for DLL mode
 	HANDLE get();
@@ -143,7 +142,7 @@ namespace EyeCrawl {
 
 		std::string to_str(UINT_PTR);
 		std::string to_str(UCHAR);
-		UCHAR to_byte(std::string);
+		UCHAR to_byte(char*);
 		// Reads the value of a 32bit register, or an
 		// offset of the register, at the given address.
 		// 
