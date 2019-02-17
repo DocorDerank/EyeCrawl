@@ -30,6 +30,7 @@ namespace EyeCrawl {
 	const char* _r16[8] = {"ax","bx","cx","dx","sp","bp","si","di"};
 	const char* _r32[8] = {"eax","ecx","edx","ebx","esp","ebp","esi","edi"};
 	const char* _r64[8] = {"rax","rbx","rcx","rdx","rsp","rbp","rsi","rdi"}; // COMING SOON
+	const char* _xmm[8] = {"xmm0","xmm1","xmm2","xmm3","xmm4","xmm5","xmm6","xmm7"};
 	const char* _conds[16] = {"o","no","b","nb","e","ne","na","a","s","ns","p","np","l","nl","lng","g"};
 
 	namespace util {
@@ -368,11 +369,11 @@ EyeCrawl::instruction* EyeCrawl::disassemble(UINT_PTR addr) {
 				break;
 			}
 			if (readb(addr+1) >= 0xC0){
-				strcat_s(x->opcode," byte ptr");
+				strcpy_s(x->mark1, "byte ptr");
 				set_d(x,r8);
 				set_s(x,imm8);
 			} else {
-				strcat_s(x->opcode," dword ptr");
+				strcpy_s(x->mark1, "dword ptr");
 				set_d(x,r_m16_32);
 				set_s(x,imm8);
 			}
@@ -380,90 +381,92 @@ EyeCrawl::instruction* EyeCrawl::disassemble(UINT_PTR addr) {
 		case 0x81:
 			switch (readb(addr+1)%0x40/8){
 				case 0:
-					strcpy_s(x->opcode,"add dword ptr");
+					strcpy_s(x->opcode,"add");
 					set_d(x,r_m16_32);
 					set_s(x,imm32);
 					break;
 				case 1:
-					strcpy_s(x->opcode,"or dword ptr");
+					strcpy_s(x->opcode,"or");
 					set_d(x,r_m16_32);
 					set_s(x,imm32);
 					break;
 				case 2:
-					strcpy_s(x->opcode,"adc dword ptr");
+					strcpy_s(x->opcode,"adc");
 					set_d(x,r_m16_32);
 					set_s(x,imm32);
 					break;
 				case 3:
-					strcpy_s(x->opcode,"sbb dword ptr");
+					strcpy_s(x->opcode,"sbb");
 					set_d(x,r_m16_32);
 					set_s(x,imm32);
 					break;
 				case 4:
-					strcpy_s(x->opcode,"and dword ptr");
+					strcpy_s(x->opcode,"and");
 					set_d(x,r_m16_32);
 					set_s(x,imm32);
 					break;
 				case 5:
-					strcpy_s(x->opcode,"sub dword ptr");
+					strcpy_s(x->opcode,"sub");
 					set_d(x,r_m16_32);
 					set_s(x,imm32);
 					break;
 				case 6:
-					strcpy_s(x->opcode,"xor dword ptr");
+					strcpy_s(x->opcode,"xor");
 					set_d(x,r_m16_32);
 					set_s(x,imm32);
 					break;
 				case 7:
-					strcpy_s(x->opcode,"cmp dword ptr");
+					strcpy_s(x->opcode,"cmp");
 					set_d(x,r_m16_32);
 					set_s(x,imm32);
-					break;
+				break;
 			}
+			strcpy_s(x->mark1, "dword ptr");
 			break;
 		case 0x82:
 			switch (readb(addr+1)%0x40/8){
 				case 0:
-					strcpy_s(x->opcode,"add byte ptr");
+					strcpy_s(x->opcode,"add");
 					set_d(x,r_m16_32);
 					set_s(x,imm8);
 					break;
 				case 1:
-					strcpy_s(x->opcode,"or byte ptr");
+					strcpy_s(x->opcode,"or");
 					set_d(x,r_m16_32);
 					set_s(x,imm8);
 					break;
 				case 2:
-					strcpy_s(x->opcode,"adc byte ptr");
+					strcpy_s(x->opcode,"adc");
 					set_d(x,r_m16_32);
 					set_s(x,imm8);
 					break;
 				case 3:
-					strcpy_s(x->opcode,"sbb byte ptr");
+					strcpy_s(x->opcode,"sbb");
 					set_d(x,r_m16_32);
 					set_s(x,imm8);
 					break;
 				case 4:
-					strcpy_s(x->opcode,"and byte ptr");
+					strcpy_s(x->opcode,"and");
 					set_d(x,r_m16_32);
 					set_s(x,imm8);
 					break;
 				case 5:
-					strcpy_s(x->opcode,"sub byte ptr");
+					strcpy_s(x->opcode,"sub");
 					set_d(x,r_m16_32);
 					set_s(x,imm8);
 					break;
 				case 6:
-					strcpy_s(x->opcode,"xor byte ptr");
+					strcpy_s(x->opcode,"xor");
 					set_d(x,r_m16_32);
 					set_s(x,imm8);
 					break;
 				case 7:
-					strcpy_s(x->opcode,"cmp byte ptr");
+					strcpy_s(x->opcode,"cmp");
 					set_d(x,r_m16_32);
 					set_s(x,imm8);
-					break;
+				break;
 			}
+			strcpy_s(x->mark1, "byte ptr");
 			break;
 		case 0x83:
 			switch (readb(addr+1)%0x40/8){
@@ -503,11 +506,12 @@ EyeCrawl::instruction* EyeCrawl::disassemble(UINT_PTR addr) {
 					set_s(x,imm8);
 					break;
 				case 7:
-					strcpy_s(x->opcode,"cmp dword ptr");
+					strcpy_s(x->opcode,"cmp");
 					set_d(x,r_m16_32);
 					set_s(x,imm8);
-					break;
+				break;
 			}
+			strcpy_s(x->mark1, "dword ptr");
 			break;
 		case 0x85:
 			strcpy_s(x->opcode,"test");
@@ -607,42 +611,43 @@ EyeCrawl::instruction* EyeCrawl::disassemble(UINT_PTR addr) {
 		case 0xC0:
 			switch (readb(addr+1)%0x40/8){
 				case 0:
-					strcpy_s(x->opcode,"rol byte ptr");
+					strcpy_s(x->opcode,"rol");
 					set_d(x,r_m16_32);
 					set_s(x,imm8);
 					break;
 				case 1:
-					strcpy_s(x->opcode,"ror byte ptr");
+					strcpy_s(x->opcode,"ror");
 					set_d(x,r_m16_32);
 					set_s(x,imm8);
 					break;
 				case 2:
-					strcpy_s(x->opcode,"rcl byte ptr");
+					strcpy_s(x->opcode,"rcl");
 					set_d(x,r_m16_32);
 					set_s(x,imm8);
 					break;
 				case 3:
-					strcpy_s(x->opcode,"rcr byte ptr");
+					strcpy_s(x->opcode,"rcr");
 					set_d(x,r_m16_32);
 					set_s(x,imm8);
 					break;
 				case 4:
-					strcpy_s(x->opcode,"shl byte ptr");
+					strcpy_s(x->opcode,"shl");
 					set_d(x,r_m16_32);
 					set_s(x,imm8);
 					break;
 				case 5:
-					strcpy_s(x->opcode,"shr byte ptr");
+					strcpy_s(x->opcode,"shr");
 					set_d(x,r_m16_32);
 					set_s(x,imm8);
 					break;
 				// CASE 6 NOT COVERED BY INTEL DOCUMENTATION
 				case 7:
-					strcpy_s(x->opcode,"sar byte ptr");
+					strcpy_s(x->opcode,"sar");
 					set_d(x,r_m16_32);
 					set_s(x,imm8);
 					break;
 			}
+			strcpy_s(x->mark1, "byte ptr");
 			break;
 		case 0xC1:
 			switch (readb(addr+1)%0x40/8){
@@ -693,7 +698,8 @@ EyeCrawl::instruction* EyeCrawl::disassemble(UINT_PTR addr) {
 			break;
 		case 0xC6:
 			if (readb(addr+1)%0x40<8){
-				strcpy_s(x->opcode, "mov byte ptr");
+				strcpy_s(x->opcode, "mov");
+				strcpy_s(x->mark1, "byte ptr");
 				set_d(x, r_m16_32);
 				set_s(x, imm8);
 				break;
@@ -701,7 +707,8 @@ EyeCrawl::instruction* EyeCrawl::disassemble(UINT_PTR addr) {
 			break;
 		case 0xC7:
 			if (readb(addr+1)%0x40<8){
-				strcpy_s(x->opcode, "mov dword ptr");
+				strcpy_s(x->opcode, "mov");
+				strcpy_s(x->mark1, "dword ptr");
 				set_d(x, r_m16_32);
 				set_s(x, imm32);
 				break;
@@ -709,6 +716,50 @@ EyeCrawl::instruction* EyeCrawl::disassemble(UINT_PTR addr) {
 			break;
 		case 0xCC:
 			strcpy_s(x->opcode,"align");
+			break;
+		case 0xD9:
+			x->size++;
+			switch (readb(addr+x->size)){
+				case 0xE0:
+					strcpy_s(x->opcode,"fchs"); // change sign
+					break;
+				case 0xE1:
+					strcpy_s(x->opcode,"fabs"); // absolute value
+					break;
+				case 0xE4:
+					strcpy_s(x->opcode,"ftst"); // test
+					break;
+				case 0xE5:
+					strcpy_s(x->opcode,"fxam"); // examine
+					break;
+				case 0xE8:
+					strcpy_s(x->opcode,"fld1"); // Push +1.0 onto FPU stack
+					break;
+				case 0xE9:
+					strcpy_s(x->opcode,"fldl2t"); // Push log2(10) onto FPU stack
+					break;
+				case 0xEA:
+					strcpy_s(x->opcode,"fldl2e"); // Push log2(e) onto FPU stack
+					break;
+				case 0xEB:
+					strcpy_s(x->opcode,"fldpi"); // Push pi constant onto FPU stack
+					break;
+				case 0xEC:
+					strcpy_s(x->opcode,"fldlg2"); // Push log10(2) onto FPU stack
+					break;
+				case 0xED:
+					strcpy_s(x->opcode,"fldln2"); // Push log e(2) onto FPU stack
+					break;
+				case 0xEE:
+					strcpy_s(x->opcode,"fldz"); // Push +0.0 onto FPU stack
+					break;
+			}
+		case 0xDD:
+			if (readb(addr+1) <= 0xC0){
+				strcpy_s(x->opcode,"fld");
+				strcpy_s(x->mark1,"qword ptr");
+				set_d(x,r_m16_32);
+			}
 			break;
 		case 0xE8:
 			strcpy_s(x->opcode,"call");
@@ -740,9 +791,45 @@ EyeCrawl::instruction* EyeCrawl::disassemble(UINT_PTR addr) {
 			} else {
 				switch (b) {
 					case 0x1F:
-						strcpy_s(x->opcode, "nop dword ptr");
+						strcpy_s(x->opcode, "nop");
+						strcpy_s(x->mark1, "dword ptr");
 						set_d(x,r_m16_32);
-						break;
+					break;
+
+					case 0x28:
+						strcpy_s(x->opcode, "movaps");
+						if (readb(addr+x->size+1) >= 0xC0){
+							set_d(x,rxmm);
+							set_s(x,rxmm);
+						} else {
+							strcpy_s(x->mark2, "qword ptr");
+							set_d(x,rxmm);
+							set_s(x,r_m16_32);
+						}
+					break;
+					case 0x29:
+						strcpy_s(x->opcode, "movaps");
+						if (readb(addr+x->size+1) >= 0xC0){
+							set_d(x,rxmm);
+							set_s(x,rxmm);
+						} else {
+							strcpy_s(x->mark1, "qword ptr");
+							set_d(x,r_m16_32);
+							set_s(x,rxmm);
+						}
+					break;
+
+					case 0x57:
+						strcpy_s(x->opcode, "xorps");
+						if (readb(addr+x->size+1) >= 0xC0){
+							set_d(x,rxmm);
+							set_s(x,rxmm);
+						} else {
+							strcpy_s(x->mark2, "qword ptr");
+							set_d(x,rxmm);
+							set_s(x,r_m16_32);
+						}
+					break;
 					
 					case 0xB6:
 						strcpy_s(x->opcode, "movzx");
@@ -809,6 +896,28 @@ EyeCrawl::instruction* EyeCrawl::disassemble(UINT_PTR addr) {
 			}
 		break;
 
+		case 0xF2:
+			x->size++;
+			switch (readb(addr+x->size)){
+				case 0x0F:
+					x->size++;
+					switch (readb(addr+x->size)){
+						case 0x10:
+							strcpy_s(x->opcode, "movsd");
+							if (readb(addr+x->size+1) >= 0xC0){
+								set_d(x,rxmm);
+								set_s(x,rxmm);
+							} else {
+								strcpy_s(x->mark2, "qword ptr");
+								set_d(x,rxmm);
+								set_s(x,r_m16_32);
+							}
+						break;
+					}
+				break;
+			}
+		break;
+
 		case 0xF7:
 			x->size++;
 			if (readb(addr+x->size) % 0x40 < 8){
@@ -849,35 +958,36 @@ EyeCrawl::instruction* EyeCrawl::disassemble(UINT_PTR addr) {
 		case 0xFF:
 			switch (readb(addr+1)%0x40/8){
 				case 0:
-					strcpy_s(x->opcode,"inc dword ptr");
+					strcpy_s(x->opcode,"inc");
 					set_d(x,r_m16_32);
 					break;
 				case 1:
-					strcpy_s(x->opcode,"dec dword ptr");
+					strcpy_s(x->opcode,"dec");
 					set_d(x,r_m16_32);
 					break;
 				case 2:
-					strcpy_s(x->opcode,"call dword ptr");
+					strcpy_s(x->opcode,"call");
 					set_d(x,r_m16_32);
 					break;
 				case 3:
-					strcpy_s(x->opcode,"call dword ptr");
+					strcpy_s(x->opcode,"call");
 					set_d(x,r_m16_32);
 					break;
 				case 4:
-					strcpy_s(x->opcode,"jmp dword ptr");
+					strcpy_s(x->opcode,"jmp");
 					set_d(x,r_m16_32);
 					break;
 				case 5:
-					strcpy_s(x->opcode,"jmp far dword ptr");
+					strcpy_s(x->opcode,"jmp far");
 					set_d(x,r_m16_32);
 					break;
 				case 6:
-					strcpy_s(x->opcode,"push dword ptr");
+					strcpy_s(x->opcode,"push");
 					set_d(x,r_m16_32);
 				break;
 				// CASE 7 NOT COVERED BY INTEL DOCUMENTATION
 			}
+			strcpy_s(x->mark1, "dword ptr");
 		break;
 
 		default:
@@ -890,17 +1000,32 @@ EyeCrawl::instruction* EyeCrawl::disassemble(UINT_PTR addr) {
 
 	x->size++;
 	UCHAR c,mode20,mode40,i,j,oldj=0,skip=0;
+
 	strcpy_s(x->data, x->opcode);
 	if (!single_reg) strcat_s(x->data, " ");
-
+	
 	char cnv[16]; // for future values we have to convert to string
 	char second_op[4];
+
+	auto check_mark1 = [&x]() {
+		if (lstrlenA(x->mark1) > 0){
+			strcat_s(x->data, x->mark1);
+			strcat_s(x->data, " ");
+		}
+	};
+
+	auto check_mark2 = [&x]() {
+		if (lstrlenA(x->mark2) > 0){
+			strcat_s(x->data, x->mark2);
+			strcat_s(x->data, " ");
+		}
+	};
 
 	// Used for furthering the instruction
 	// by updating the values corresponding
 	// to the next byte
 	// 
-	auto update=[&c,&addr,&x,&mode20,&mode40,&i,&j](){
+	auto update = [&c,&addr,&x,&mode20,&mode40,&i,&j]() {
 		c=readb(addr+x->size);
 		mode20=c/32;
 		mode40=c/64;
@@ -909,7 +1034,7 @@ EyeCrawl::instruction* EyeCrawl::disassemble(UINT_PTR addr) {
 	};
 
 	// *calibrate and then extend size
-	auto extend=[&c,&addr,&x,update](){
+	auto extend = [&c,&addr,&x,update]() {
 		update();
 		x->size++;
 	};
@@ -917,7 +1042,7 @@ EyeCrawl::instruction* EyeCrawl::disassemble(UINT_PTR addr) {
 	// Quick functions to help translate
 	// the asm to readable text
 	//
-	auto w_offset8=[&x,&cnv,&addr](){
+	auto w_offset8 = [&x,&cnv,&addr]() {
 		UCHAR v=readb(addr+x->size);
 		x->offset = v;
 		if (v <= 0x7F){
@@ -932,7 +1057,7 @@ EyeCrawl::instruction* EyeCrawl::disassemble(UINT_PTR addr) {
 		x->size += 1;
 	};
 
-	auto w_offset16=[&x,&cnv,&addr](){
+	auto w_offset16 = [&x,&cnv,&addr]() {
 		USHORT v=readus(addr+x->size);
 		x->offset = v;
 		if (v <= 0x7FFF){
@@ -947,7 +1072,7 @@ EyeCrawl::instruction* EyeCrawl::disassemble(UINT_PTR addr) {
 		x->size += sizeof(USHORT);
 	};
 
-	auto w_offset32=[&x,&cnv,&addr](){
+	auto w_offset32 = [&x,&cnv,&addr]() {
 		UINT_PTR v=readui(addr+x->size);
 		x->offset = v;
 		if (v <= 0x7FFFFFFF){
@@ -962,7 +1087,7 @@ EyeCrawl::instruction* EyeCrawl::disassemble(UINT_PTR addr) {
 		x->size += sizeof(UINT_PTR);
 	};
 
-	auto w_mult32=[&x,&mode40](){
+	auto w_mult32 = [&x,&mode40]() {
 		if (mode40 != 0) {
 			int mul=(mode40==1)?2:(mode40==2)?4:(mode40==3)?8:0;
 			char s_mul[2];
@@ -1034,6 +1159,9 @@ EyeCrawl::instruction* EyeCrawl::disassemble(UINT_PTR addr) {
 		case _m::r32:
 			strcat_s(x->data,_r32[j]);
 		break;
+		case _m::rxmm:
+			strcat_s(x->data,_xmm[j]);
+		break;
 
 		case _m::r16_32:
 			x->r32[0] = j;
@@ -1083,6 +1211,7 @@ EyeCrawl::instruction* EyeCrawl::disassemble(UINT_PTR addr) {
 					strcat_s(x->data, _r32[i]);
 					break;
 				case 2: // 0x80 through 0xBF
+					check_mark1();
 					strcat_s(x->data, "[");
 					oldj = j;
 					switch(i){
@@ -1107,6 +1236,7 @@ EyeCrawl::instruction* EyeCrawl::disassemble(UINT_PTR addr) {
 					strcat_s(x->data, "]");
 					break;
 				case 1: // 0x40 through 0x80
+					check_mark1();
 					strcat_s(x->data, "[");
 					oldj = j;
 					switch(i){
@@ -1131,6 +1261,7 @@ EyeCrawl::instruction* EyeCrawl::disassemble(UINT_PTR addr) {
 					strcat_s(x->data, "]");
 					break;
 				case 0: // 0x00 through 0x40
+					check_mark1();
 					strcat_s(x->data, "[");
 					oldj = j;
 					switch(i){
@@ -1189,6 +1320,11 @@ EyeCrawl::instruction* EyeCrawl::disassemble(UINT_PTR addr) {
 	// SECOND OPERAND, if not already configured
 	if (!skip && x->src != _m::none){
 		strcat_s(x->data,",");
+
+		if (lstrlenA(x->mark2) > 0){
+			strcat_s(x->data, x->mark2);
+			strcat_s(x->data, " ");
+		}
 		
 		switch (x->src) {
 			// Check 8bit value on the next byte
@@ -1247,6 +1383,9 @@ EyeCrawl::instruction* EyeCrawl::disassemble(UINT_PTR addr) {
 			case _m::r32:
 				strcat_s(x->data,_r32[i]);
 			break;
+			case _m::rxmm:
+				strcat_s(x->data,_xmm[i]);
+			break;
 
 			case _m::r16_32:
 				x->r32[1] = j;
@@ -1279,6 +1418,7 @@ EyeCrawl::instruction* EyeCrawl::disassemble(UINT_PTR addr) {
 						strcat_s(x->data,_r32[i]);
 					break;
 					case 2: // 0x80 through 0xBF		[op] eax,[eax+eax*?+????????]
+						check_mark2();
 						strcat_s(x->data, "[");
 						switch(i){
 							case 0x4:
@@ -1301,6 +1441,7 @@ EyeCrawl::instruction* EyeCrawl::disassemble(UINT_PTR addr) {
 						strcat_s(x->data, "]");
 					break;
 					case 1: // 0x40 through 0x7F		[op] eax,[eax+eax*?+??]
+						check_mark2();
 						strcat_s(x->data, "[");
 						switch(i){
 							case 0x4:
@@ -1321,6 +1462,7 @@ EyeCrawl::instruction* EyeCrawl::disassemble(UINT_PTR addr) {
 						strcat_s(x->data, "]");
 					break;
 					case 0:
+						check_mark2();
 						strcat_s(x->data, "[");
 						switch(i){
 							case 0x4:
