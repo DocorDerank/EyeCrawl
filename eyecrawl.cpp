@@ -304,6 +304,7 @@ EyeCrawl::instruction* EyeCrawl::disassemble(UINT_PTR addr) {
 							set_s(x,r_m16_32);
 						}
 					break;
+
 					case 0x29:
 						strcpy_s(x->opcode, "movaps");
 						if (readb(addr+x->size+1) >= 0xC0){
@@ -963,6 +964,18 @@ EyeCrawl::instruction* EyeCrawl::disassemble(UINT_PTR addr) {
 								set_s(x,r_m16_32);
 							}
 						break;
+
+						case 0x11:
+							strcpy_s(x->opcode, "movsd");
+							if (readb(addr+x->size+1) >= 0xC0){
+								set_d(x,rxmm);
+								set_s(x,rxmm);
+							} else {
+								strcpy_s(x->mark1, "qword ptr");
+								set_d(x,r_m16_32);
+								set_s(x,rxmm);
+							}
+						break;
 					}
 				break;
 			}
@@ -1055,7 +1068,7 @@ EyeCrawl::instruction* EyeCrawl::disassemble(UINT_PTR addr) {
 	if (!single_reg) strcat_s(x->data, " ");
 	
 	char cnv[16]; // for future values we have to convert to string
-	char second_op[4];
+	char second_op[8];
 
 	auto check_mark = [&x]() {
 		if (lstrlenA(x->mark1) > 0){
@@ -1243,12 +1256,15 @@ EyeCrawl::instruction* EyeCrawl::disassemble(UINT_PTR addr) {
 							(x->src==_m::r16),
 					can_solve_second_r32op =
 							(x->src==_m::r32 ||
-							x->src==_m::r16_32);
+							x->src==_m::r16_32),
+					can_solve_second_rxmmop =
+							(x->src==_m::rxmm);
 			// For any case, we need to skip the second
 			// operand check
 			skip = (can_solve_second_r8op ||
 					can_solve_second_r16op ||
-					can_solve_second_r32op);
+					can_solve_second_r32op ||
+					can_solve_second_rxmmop);
 
 			extend();
 			x->r32[0] = i;
@@ -1357,6 +1373,7 @@ EyeCrawl::instruction* EyeCrawl::disassemble(UINT_PTR addr) {
 				if (can_solve_second_r8op){	x->r8[1]=oldj; strcpy_s(second_op,_r8[oldj]); }
 				if (can_solve_second_r16op){ x->r16[1]=oldj; strcpy_s(second_op,_r16[oldj]); }
 				if (can_solve_second_r32op){ x->r32[1]=oldj; strcpy_s(second_op,_r32[oldj]); }
+				if (can_solve_second_rxmmop){ x->rxmm[1]=oldj; strcpy_s(second_op,_xmm[oldj]); }
 				strcat_s(x->data, ",");
 				strcat_s(x->data, second_op);
 			}
@@ -1417,15 +1434,19 @@ EyeCrawl::instruction* EyeCrawl::disassemble(UINT_PTR addr) {
 
 			case _m::r8:
 				strcat_s(x->data,_r8[i]);
+				x->size++;
 			break;
 			case _m::r16:
 				strcat_s(x->data,_r16[i]);
+				x->size++;
 			break;
 			case _m::r32:
 				strcat_s(x->data,_r32[i]);
+				x->size++;
 			break;
 			case _m::rxmm:
 				strcat_s(x->data,_xmm[i]);
+				x->size++;
 			break;
 
 			case _m::r16_32:
@@ -1506,6 +1527,11 @@ EyeCrawl::instruction* EyeCrawl::disassemble(UINT_PTR addr) {
 						check_mark();
 						strcat_s(x->data, "[");
 						switch(i){
+							case 0x5:
+								sprintf_s(cnv,"%08X",readui(addr+x->size));
+								strcat_s(x->data, cnv);
+								x->size += sizeof(UINT_PTR);
+								break;
 							case 0x4:
 								extend();
 								x->r32[1] = i;
@@ -2024,17 +2050,29 @@ std::string EyeCrawl::util::calltype(UINT_PTR func) {
 		cur_instr++;
 		pinstruction i = disassemble(at);
 		if (strfind(i->data,"push ecx")) ecx=true;
-		if (i->r32[1] == R_ECX && !ecx)	 ecx_abused=true;
+		//if (i->r32[1] == R_ECX && !ecx)	 ecx_abused=true;
+		if (strfind(i->data,",ecx") || strfind(i->data,",[ecx"))
+			if (!ecx)
+				ecx_abused = true;
 
 		if (cur_instr == 3)
 			if (strfind(i->data,"sub esp"))
 				if (i->v8 == 0x10)
 					local_stack = true;
 
-		if (local_stack)
-			if (i->r32[0] == R_EBP || i->r32[1] == R_EBP)
-				if (i->offset >= 0x80 && (256-i->offset) >= 0x8)
-					vars.push_back((UCHAR)(256-i->offset));
+		if (local_stack){
+			if (i->r32[0] == R_EBP || i->r32[1] == R_EBP){
+				UCHAR var = (UCHAR)(256-i->offset);
+				if (i->offset >= 0x80 && var >= 0x8){
+					bool found = false;
+					for (UCHAR x : vars){
+						found = (x == var);
+						if (found) break;
+					}
+					if (!found) vars.push_back(var);
+				}
+			}
+		}
 
 		at += i->size;
 		delete i;
