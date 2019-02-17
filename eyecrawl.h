@@ -4,6 +4,7 @@
 #include <Windows.h>
 #include <vector>
 
+#define DLL_MODE FALSE
 #define set_d(x,d){ x->dest=d; }
 #define set_s(x,s){ x->src=s;  }
 #define STR_READ_MAX 1024
@@ -28,7 +29,8 @@ bool strfind(const char* A, const char* B);
 namespace EyeCrawl {
 	typedef std::vector<UINT_PTR>results;
 
-	void set(HANDLE);
+	void set(HANDLE);	// Use for remote application
+	void set();			// Use for DLL mode
 	HANDLE get();
 	UINT_PTR base_start();
 	UINT_PTR base_end();
