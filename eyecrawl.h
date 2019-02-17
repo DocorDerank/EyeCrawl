@@ -75,6 +75,7 @@ namespace EyeCrawl {
 		int r8[4]; // 8bit registers used in instruction
 		int r16[4];// 16bit registers used in instruction
 		int r32[4];// 32bit registers used in instruction
+		int rxmm[4];// xmm/FPU registers used in instruction
 		int size;
 		int v8; // 8bit value moved into reg8/offset/etc.
 		int v16;// 16bit value moved into reg16/offset/etc.
