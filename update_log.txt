@@ -1,0 +1,5 @@
+2/17/19 - Added/implementing support for DLLs.
+Make sure to set DLL_MODE to TRUE in eyecrawl.h
+
+
+
