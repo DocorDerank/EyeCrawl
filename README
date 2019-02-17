@@ -27,6 +27,8 @@ Please give credit to static/THEDOOMED/me.
 
 How to use:
 
+NOTE: Make sure to set DLL_MODE to TRUE in eyecrawl.h if you are going to use in a DLL
+
 Simply include the EyeCrawl namespace,
 and after you call OpenProcess on your target program, insert this:
 EyeCrawl::set(process_handle);
