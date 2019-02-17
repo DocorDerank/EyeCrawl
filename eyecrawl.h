@@ -194,7 +194,8 @@ namespace EyeCrawl {
 		// Use base_start() and base_end()
 		// for any x86-related scans
 		// 
-		results scan(UINT_PTR, UINT_PTR, std::string, const char*);
+		results scan(UINT_PTR, UINT_PTR, const char*, const char*);
+		results scan(UINT_PTR, UINT_PTR, const char*);
 	};
 }
 
