@@ -45,8 +45,7 @@ OR, say you wanna debug a function and get the first arg passed to it:
 UINT_PTR gettop = aslr(0x7F1F40);
 printf("Lua State: %08X.\n", util::debug32(gettop+6,R_EBP,8));
 
-(Notice memcheck wont shut you down for this as it is swapped out immediately after)
-(Thank you RoboMat, this gettop idea works pretty well)
+(Notice memcheck wont shut you down, as this unhooks immediately after)
 
 It's up to you how you use this.
 More tutorials soon to come...
