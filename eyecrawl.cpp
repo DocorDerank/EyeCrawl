@@ -31,7 +31,9 @@ namespace EyeCrawl {
 	const char* _r32[8] = {"eax","ecx","edx","ebx","esp","ebp","esi","edi"};
 	const char* _r64[8] = {"rax","rbx","rcx","rdx","rsp","rbp","rsi","rdi"}; // COMING SOON
 	const char* _xmm[8] = {"xmm0","xmm1","xmm2","xmm3","xmm4","xmm5","xmm6","xmm7"};
-	const char* _conds[16] = {"o","no","b","nb","e","ne","na","a","s","ns","p","np","l","nl","lng","g"};
+	const char* _conds[16]	= {"o","no","b","nb","e","ne","na","a","s","ns","p","np","l","nl","lng","g"};
+	const char c_ref1[16]	= {'0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'};
+	const UCHAR c_ref2[16]	= { 0,  1,  2,  3,  4,  5,  6,  7,  8,  9,  10, 11, 12, 13, 14, 15};
 
 	namespace util {
 		const long buffersize = (64 * 64 * 64);
@@ -1646,18 +1648,44 @@ bool EyeCrawl::util::vfree(UINT_PTR address, ULONG_PTR size) {
 	return VirtualFreeEx(proc,reinterpret_cast<void*>(address),size,MEM_RELEASE);
 }
 
-EyeCrawl::results EyeCrawl::util::scan(UINT_PTR begin, UINT_PTR end, const char* aob, const char* mask) {
+UCHAR EyeCrawl::util::to_byte(std::string x) {
+	if (x.length()!=2) return 0;
+	UCHAR b=0;
+	for (int i=0; i<16; i++){
+		if (x[0]==c_ref1[i]) b+=c_ref2[i]*16;
+		if (x[1]==c_ref1[i]) b+=i;
+	}
+	return b;
+}
+
+std::string EyeCrawl::util::to_str(UCHAR b) {
+	std::string x="";
+	x += c_ref1[b/16];
+	x += c_ref1[b%16];
+	return x;
+}
+
+EyeCrawl::results EyeCrawl::util::scan(UINT_PTR begin, UINT_PTR end, std::string aob, const char* mask) {
 	HANDLE self				= GetCurrentProcess();
 	int oldpriority			= GetThreadPriority(self);
 	SetThreadPriority(self, THREAD_PRIORITY_HIGHEST);
 
 	results	 results_list	= results();
 	UINT_PTR start			= begin,
-			 size			= lstrlenA(mask),
+			 size			= (aob.length()/2),
 			 at				= 0;
+	UCHAR* data				= new UCHAR[size];
 	UCHAR* buffer			= new UCHAR[buffersize];
+	
+	for (int i=0,j=0; i<size; i++,j+=2){
+		std::string s = "";
+		s += aob[j];
+		s += aob[j+1];
+		data[i] = to_byte(s);
+	}
+
 	while (start < end){
-		if (ReadProcessMemory(proc,(void*)start,buffer,buffersize,0)){
+		if (PMREAD(proc,reinterpret_cast<void*>(start),buffer,buffersize,0)){
 			__asm push edi
 			__asm mov edi,0
 			__asm jmp L2
@@ -1665,7 +1693,7 @@ EyeCrawl::results EyeCrawl::util::scan(UINT_PTR begin, UINT_PTR end, const char*
 			__asm mov at,edi
 			bool match = true;
 			for (int x=0; x<size; x++)
-				if (buffer[at+x]!=aob[x] && mask[x]!='x')
+				if (buffer[at+x]!=data[x] && mask[x]!='x')
 					match = false;
 			if (match) results_list.push_back(start+at);
 		L2:	__asm cmp edi,buffersize
@@ -1675,6 +1703,7 @@ EyeCrawl::results EyeCrawl::util::scan(UINT_PTR begin, UINT_PTR end, const char*
 		start += (buffersize - size) + 1;
 	}
 	delete[] buffer;
+	delete[] data;
 
 	SetThreadPriority(self, oldpriority);
 	return results_list;
@@ -1909,6 +1938,14 @@ UINT_PTR EyeCrawl::util::debug32(UINT_PTR address, UCHAR r32, int offset) {
 	vfree(code_loc,32);
 	vfree(trace_loc,4);
 	return (value==mask)?0:value;
+}
+
+std::string EyeCrawl::util::to_str(UINT_PTR address) {
+	std::string str = "";
+	char c[16];
+	sprintf_s(c, "%08X", address);
+	str += c;
+	return str;
 }
 
 std::string EyeCrawl::util::calltype(UINT_PTR func) {
