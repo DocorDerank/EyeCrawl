@@ -1704,7 +1704,7 @@ std::string EyeCrawl::util::to_str(UCHAR b) {
 	return x;
 }
 
-results EyeCrawl::util::scan(UINT_PTR begin, UINT_PTR end, std::string aob, const char* mask) {
+results EyeCrawl::util::scan(UINT_PTR begin, UINT_PTR end, const char* aob, const char* mask) {
 	HANDLE self				= GetCurrentProcess();
 	int oldpriority			= GetThreadPriority(self);
 	SetThreadPriority(self, THREAD_PRIORITY_HIGHEST);
@@ -1716,11 +1716,11 @@ results EyeCrawl::util::scan(UINT_PTR begin, UINT_PTR end, std::string aob, cons
 	UCHAR* data				= new UCHAR[size];
 	UCHAR* buffer			= new UCHAR[buffersize];
 	
-	for (int i=0,j=0; i<size; i++,j+=2){
+	for (int i=0,j=0;i<size;i++,j+=2){
 		char c[2];
-		c[0] = aob[j];
-		c[1] = aob[j+1];
-		data[i] = to_byte(c);
+		c[0]=aob[j];
+		c[1]=aob[j+1];
+		data[i]=to_byte(c);
 	}
 
 	while (start < end){
@@ -1739,12 +1739,22 @@ results EyeCrawl::util::scan(UINT_PTR begin, UINT_PTR end, std::string aob, cons
 			__asm jb L1
 			__asm pop edi
 		}
-		start += (buffersize - size) + 1;
+		start += (buffersize-size)+1;
 	}
 	delete[] buffer;
 	delete[] data;
 
 	SetThreadPriority(self, oldpriority);
+	return results_list;
+}
+
+results EyeCrawl::util::scan(UINT_PTR begin, UINT_PTR end, const char* aob){
+	int size = (lstrlenA(aob)/2);
+	char* c = new char[size+1];
+	for (int i=0;i<size;i++) c[i]='.';
+	c[size]='\0';
+	results results_list = scan(begin, end, aob, c);
+	delete[] c;
 	return results_list;
 }
 
