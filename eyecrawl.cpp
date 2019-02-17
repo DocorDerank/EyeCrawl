@@ -33,7 +33,7 @@ namespace EyeCrawl {
 	const char* _xmm[8] = {"xmm0","xmm1","xmm2","xmm3","xmm4","xmm5","xmm6","xmm7"};
 	const char* _conds[16]	= {"o","no","b","nb","e","ne","na","a","s","ns","p","np","l","nl","lng","g"};
 	const char c_ref1[16]	= {'0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'};
-	const UCHAR c_ref2[16]	= { 0,  1,  2,  3,  4,  5,  6,  7,  8,  9,  10, 11, 12, 13, 14, 15};
+	const int c_ref2[16]	= { 0,  1,  2,  3,  4,  5,  6,  7,  8,  9,  10, 11, 12, 13, 14, 15};
 
 	namespace util {
 		const long buffersize = (64 * 64 * 64);
@@ -51,7 +51,7 @@ void EyeCrawl::set(HANDLE handle) {
 			if (GetModuleFileNameExA(handle,hMods[i],szModPath,sizeof(szModPath)) && K32GetModuleInformation(handle,hMods[i],&info,cbNeeded)){
 				if (mCurrent++==0){
 					base_address = reinterpret_cast<UINT_PTR>(info.lpBaseOfDll);
-					base_size = reinterpret_cast<UINT_PTR>(&info.SizeOfImage);
+					base_size = info.SizeOfImage;
 				}
 			}
 		}
@@ -69,7 +69,7 @@ void EyeCrawl::set() {
 			if (GetModuleFileNameA(hMods[i],szModPath,sizeof(szModPath)) && K32GetModuleInformation(proc,hMods[i],&info,cbNeeded)){
 				if (mCurrent++==0){
 					base_address = reinterpret_cast<UINT_PTR>(info.lpBaseOfDll);
-					base_size = reinterpret_cast<UINT_PTR>(&info.SizeOfImage);
+					base_size = info.SizeOfImage;
 				}
 			}
 		}
@@ -1687,10 +1687,10 @@ bool EyeCrawl::util::vfree(UINT_PTR address, ULONG_PTR size) {
 	return VirtualFreeEx(proc,reinterpret_cast<void*>(address),size,MEM_RELEASE);
 }
 
-UCHAR EyeCrawl::util::to_byte(std::string x) {
-	if (x.length()!=2) return 0;
+UCHAR EyeCrawl::util::to_byte(char* x) {
+	if (lstrlenA(x)<2) return 0;
 	UCHAR b=0;
-	for (int i=0; i<16; i++){
+	for (int i=0;i<16;i++){
 		if (x[0]==c_ref1[i]) b+=c_ref2[i]*16;
 		if (x[1]==c_ref1[i]) b+=i;
 	}
@@ -1704,23 +1704,23 @@ std::string EyeCrawl::util::to_str(UCHAR b) {
 	return x;
 }
 
-EyeCrawl::results EyeCrawl::util::scan(UINT_PTR begin, UINT_PTR end, std::string aob, const char* mask) {
+results EyeCrawl::util::scan(UINT_PTR begin, UINT_PTR end, std::string aob, const char* mask) {
 	HANDLE self				= GetCurrentProcess();
 	int oldpriority			= GetThreadPriority(self);
 	SetThreadPriority(self, THREAD_PRIORITY_HIGHEST);
 
 	results	 results_list	= results();
 	UINT_PTR start			= begin,
-			 size			= (aob.length()/2),
+			 size			= lstrlenA(mask),
 			 at				= 0;
 	UCHAR* data				= new UCHAR[size];
 	UCHAR* buffer			= new UCHAR[buffersize];
 	
 	for (int i=0,j=0; i<size; i++,j+=2){
-		std::string s = "";
-		s += aob[j];
-		s += aob[j+1];
-		data[i] = to_byte(s);
+		char c[2];
+		c[0] = aob[j];
+		c[1] = aob[j+1];
+		data[i] = to_byte(c);
 	}
 
 	while (start < end){
@@ -1730,10 +1730,10 @@ EyeCrawl::results EyeCrawl::util::scan(UINT_PTR begin, UINT_PTR end, std::string
 			__asm jmp L2
 		L1:	__asm inc edi
 			__asm mov at,edi
-			bool match = true;
-			for (int x=0; x<size; x++)
+			unsigned char match=1;
+			for (UINT_PTR x=0; x<size; x++)
 				if (buffer[at+x]!=data[x] && mask[x]!='x')
-					match = false;
+					match=0;
 			if (match) results_list.push_back(start+at);
 		L2:	__asm cmp edi,buffersize
 			__asm jb L1
@@ -1820,8 +1820,8 @@ int EyeCrawl::util::fsize(UINT_PTR func) {
 	return funcSz;
 }
 
-EyeCrawl::results EyeCrawl::util::getepilogues(UINT_PTR func) {
-	results r=results();
+results EyeCrawl::util::getepilogues(UINT_PTR func) {
+	results r = results();
 	UINT_PTR start=func, end=(start+fsize(func));
 	while (start < end) {
 		start++;
@@ -1834,8 +1834,8 @@ EyeCrawl::results EyeCrawl::util::getepilogues(UINT_PTR func) {
 
 // This doesn't necessarily need any
 // disassembling
-EyeCrawl::results EyeCrawl::util::getcalls(UINT_PTR func) {
-	results r=results();
+results EyeCrawl::util::getcalls(UINT_PTR func) {
+	results r = results();
 	UINT_PTR start=func, end=(start+fsize(func));
 	while (start < end) {
 		start++;
