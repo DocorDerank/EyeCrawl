@@ -1715,6 +1715,7 @@ bool EyeCrawl::util::vfree(UINT_PTR address, ULONG_PTR size) {
 
 UCHAR EyeCrawl::util::to_byte(char* x) {
 	if (lstrlenA(x)<2) return 0;
+	if (x[0]=='?' && x[1]=='?') return 0;
 	UCHAR b=0;
 	for (int i=0;i<16;i++){
 		if (x[0]==c_ref1[i]) b+=c_ref2[i]*16;
