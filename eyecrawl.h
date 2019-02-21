@@ -1,13 +1,11 @@
-#pragma once
-#ifndef C_EYECRAWL
-#define C_EYECRAWL
+#ifndef C_EYECRAWL_x86
+#define C_EYECRAWL_x86
 #include <Windows.h>
+#include <TlHelp32.h>
+#include <Psapi.h>
 #include <vector>
 
-#define DLL_MODE FALSE
-#define set_d(x,d){ x->dest=d; }
-#define set_s(x,s){ x->src=s;  }
-#define results std::vector<UINT_PTR>
+#define RESULTS std::vector<UINT_PTR>
 #define STR_READ_MAX 1024
 #define PMREAD ReadProcessMemory
 #define PMWRITE WriteProcessMemory
@@ -20,19 +18,16 @@
 #define R_ESI 6
 #define R_EDI 7
 
-// Replaces any strings within a string, with
-// another string based on an expression mask
-std::string replaceex(std::string str, const char* replace, const char* mask, const char* newstr);
-
-// Returns true if string A contains string B
-bool strfind(const char* A, const char* B);
-
 namespace EyeCrawl {
-	void set(HANDLE);	// Use for remote application
-	void set();			// Use for DLL mode
+	// Use OpenProcess to get your handle if using on
+	// a remote process.
+	// Use open(NULL) if you are using a DLL!
+	void open(HANDLE);
 	HANDLE get();
 	UINT_PTR base_start();
 	UINT_PTR base_end();
+	UINT_PTR aslr(UINT_PTR);
+	UINT_PTR non_aslr(UINT_PTR);
 
 	enum dir {
 		ahead,
@@ -51,19 +46,26 @@ namespace EyeCrawl {
 	};
 
 	enum _m { // mnemonics
-		none,		
-		r8,			
-		r16,		
-		r32,		
-		r16_32,		
-		r_m16_32,	
-		rel8,		
-		rel16,		
-		rel32,		
-		imm8,		
-		imm16,		
-		imm32,		
-		rxmm		
+		none,
+		single,
+		cnd8,
+		cnd16,
+		cnd32,
+		r_m,
+		r8,
+		r16,
+		r32,
+		r_m8,
+		r_m16,
+		r_m32,
+		rel8,
+		rel16,
+		rel32,
+		imm8,
+		imm16,
+		imm32,
+		rxmm,
+		r_mx,
 	};
 
 	struct instruction {
@@ -86,25 +88,49 @@ namespace EyeCrawl {
 		char mark2[16];// same as above but will show for second operand
 
 		instruction() {
-			opcode[0]	= '\0';
-			data[0]		= '\0';
-			mark1[0]	= '\0';
-			mark2[0]	= '\0';
-			size		= 0; // skip over
-			offset		= 0;
-			v8			= 0;
-			v16			= 0;
-			v32			= 0;
-			dest		= none;
-			src			= none;
-			address		= 0;
+			opcode[0] = '\0';
+			data[0] = '\0';
+			mark1[0] = '\0';
+			mark2[0] = '\0';
+			size = 0; // skip over
+			offset = 0;
+			v8 = 0;
+			v16 = 0;
+			v32 = 0;
+			dest = none;
+			src = none;
+			address = 0;
+		}
+	};
+
+	struct instruction_ref {
+		UCHAR bytes[8];
+		char opcode[16];
+		int size;
+		_m dest;
+		_m src;
+		char mark1[16];
+		char mark2[16];
+		int div;
+
+		instruction_ref(std::vector<UCHAR>_bytes,int _div,const char* _opcode,_m _dest,_m _src,const char* _mark1,const char* _mark2){
+			size	= _bytes.size();
+			dest	= _dest;
+			src		= _src;
+			div		= _div;
+			memcpy(bytes,_bytes.data(),size);
+			strcpy_s(opcode, _opcode);
+			strcpy_s(mark1, _mark1);
+			strcpy_s(mark2, _mark2);
 		}
 	};
 
 	typedef instruction* pinstruction;
-
-	UINT_PTR	aslr(UINT_PTR);
-	UINT_PTR	non_aslr(UINT_PTR);
+	pinstruction disassemble(UINT_PTR);
+	std::string  disassemble(UINT_PTR, int, info_mode);
+	std::string to_str(UINT_PTR);
+	std::string to_str(UCHAR);
+	UCHAR to_byte(char*);
 
 	// memory reading
 	UCHAR		readb(UINT_PTR);
@@ -115,8 +141,8 @@ namespace EyeCrawl {
 	int			readi(UINT_PTR);
 	float		readf(UINT_PTR);
 	double		readd(UINT_PTR);
-	std::string sreads(UINT_PTR, int);
-	
+	std::string sreads(UINT_PTR);
+
 	// memory writing
 	bool		write(UINT_PTR, UCHAR);
 	bool		write(UINT_PTR, char);
@@ -127,9 +153,6 @@ namespace EyeCrawl {
 	bool		write(UINT_PTR, float);
 	bool		write(UINT_PTR, double);
 	bool		write(UINT_PTR, std::string);
-	
-	pinstruction disassemble(UINT_PTR);
-	std::string  disassemble(UINT_PTR, int, info_mode);
 
 	// Utilities for debugging/scanning/getting functions/etc.
 	// WIP
@@ -140,21 +163,6 @@ namespace EyeCrawl {
 			UINT_PTR address;
 			ULONG_PTR size;
 		};
-
-		std::string to_str(UINT_PTR);
-		std::string to_str(UCHAR);
-		UCHAR to_byte(char*);
-		// Reads the value of a 32bit register, or an
-		// offset of the register, at the given address.
-		// 
-		// It does this via a hook, which gets swapped out
-		// immediately afterwards
-		// Instructions partially overwritten
-		// are taken care of.
-		// 
-		// You can thank static for this awesomeness (static#8737)
-		// 
-		UINT_PTR debug32(UINT_PTR, UCHAR, int);
 
 		// allocates virtual memory
 		// at a random location,
@@ -174,13 +182,13 @@ namespace EyeCrawl {
 		bool isprologue(UINT_PTR);
 		bool isepilogue(UINT_PTR);
 		UINT_PTR getepilogue(UINT_PTR);
-		results getepilogues(UINT_PTR);
+		RESULTS getepilogues(UINT_PTR);
 		UINT_PTR nextprologue(UINT_PTR, dir, bool);
 		UINT_PTR nextepilogue(UINT_PTR, dir);
 
 		short fretn(UINT_PTR);
 		int fsize(UINT_PTR);
-		results getcalls(UINT_PTR);
+		RESULTS getcalls(UINT_PTR);
 
 		// gets the next call instruction
 		// and returns either the address of the call(loc=true),
@@ -195,11 +203,27 @@ namespace EyeCrawl {
 		// Use base_start() and base_end()
 		// for any x86-related scans
 		// 
-		results scan(UINT_PTR, UINT_PTR, const char*, const char*);
-		results scan(UINT_PTR, UINT_PTR, const char*);
-	};
+		RESULTS scan(UINT_PTR, UINT_PTR, const char*, const char*);
+		RESULTS scan(UINT_PTR, UINT_PTR, const char*);
+
+		// Reads the value of a 32bit register, or an
+		// offset of the register, at the given address.
+		// 
+		// It does this via a hook, which gets swapped out
+		// immediately afterwards
+		// Instructions partially overwritten
+		// are taken care of.
+		// 
+		// You can thank static for this awesomeness (static#8737)
+		// 
+		UINT_PTR debug32(UINT_PTR, UCHAR, int);
+		RESULTS debug32(UINT_PTR, UCHAR);
+		std::string readout32(UINT_PTR, UCHAR);
+	}
 }
 
+#endif 
 
 
-#endif
+
+
