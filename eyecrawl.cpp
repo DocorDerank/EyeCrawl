@@ -96,7 +96,7 @@ namespace EyeCrawl {
 		{{0x85}, 0,				"test",		r_m,		r_m32,	"", ""},
 		{{0x88}, 0,				"mov",		r_m,		r8,		"byte ptr", ""},
 		{{0x89}, 0,				"mov",		r_m,		r_m32,	"", ""},
-		{{0x8A}, 0,				"mov",		r8,			r_m,	"", "byte ptr"},
+		{{0x8A}, 0,				"mov",		r_m8,		r_m,	"", "byte ptr"},
 		{{0x8B}, 0,				"mov",		r_m32,		r_m,	"", ""},
 		{{0x8D}, 0,				"lea",		r_m32,		r_m,	"", ""},
 		{{0xA1}, 0,				"mov",		single,		imm32,	"eax", "dword"},
@@ -435,6 +435,7 @@ EyeCrawl::pinstruction EyeCrawl::disassemble(UINT_PTR addr) {
 		if (x->dest == single)
 			strcat_s(x->data, x->mark1);
 		
+		
 		UCHAR c,mode20,mode40,i,j,oldj=0,oldi=0,skip=0;
 		char cnv[16]; // for necessary translating
 		char second_op[8];
@@ -532,8 +533,7 @@ EyeCrawl::pinstruction EyeCrawl::disassemble(UINT_PTR addr) {
 				x->size = ref_x86[_lookup].size;
 			break;
 
-			case _m::single: 
-				check_mark();
+			case _m::single:
 				extend();
 			break;
 
@@ -612,20 +612,20 @@ EyeCrawl::pinstruction EyeCrawl::disassemble(UINT_PTR addr) {
 					case 0: // 0x00 through 0x3F
 						switch (i){
 							case 0x4:
-								strcat_s(x->data,_r32[j]);
+								strcat_s(x->data,_r8[j]);
 							break;
 							case 0x5:
-								strcat_s(x->data,_r32[(c-0x5)/8]);
+								strcat_s(x->data,_r8[(c-0x5)/8]);
 								x->size++;
 								x->src = _m::imm32;
 							break;
 							default:
-								strcat_s(x->data,_r32[j]);
+								strcat_s(x->data,_r8[j]);
 							break;
 						}
 					break;
 					default: // 0x40-0xFF
-						strcat_s(x->data,_r32[j]);
+						strcat_s(x->data,_r8[j]);
 					break;
 				}
 			break;
@@ -638,20 +638,20 @@ EyeCrawl::pinstruction EyeCrawl::disassemble(UINT_PTR addr) {
 					case 0: // 0x00 through 0x3F
 						switch (i){
 							case 0x4:
-								strcat_s(x->data,_r32[j]);
+								strcat_s(x->data,_r16[j]);
 							break;
 							case 0x5:
-								strcat_s(x->data,_r32[(c-0x5)/8]);
+								strcat_s(x->data,_r16[(c-0x5)/8]);
 								x->size++;
 								x->src = _m::imm32;
 							break;
 							default:
-								strcat_s(x->data,_r32[j]);
+								strcat_s(x->data,_r16[j]);
 							break;
 						}
 					break;
 					default: // 0x40-0xFF
-						strcat_s(x->data,_r32[j]);
+						strcat_s(x->data,_r16[j]);
 					break;
 				}
 			break;
