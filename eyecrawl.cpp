@@ -11,6 +11,7 @@ namespace EyeCrawl {
 	UINT_PTR base_address;
 	UINT_PTR base_size;
 
+	// +0x40 implies we want it to be in this mode
 	const int op8_mode1 = 0x40;
 	const int op8_mode2 = 0x48;
 	const int op8_mode3 = 0x50;
@@ -167,6 +168,12 @@ UINT_PTR EyeCrawl::base_end()				{ return base_address + base_size; }
 UINT_PTR EyeCrawl::aslr(UINT_PTR addr)		{ return (addr - 0x400000 + base_address); }
 UINT_PTR EyeCrawl::non_aslr(UINT_PTR addr)	{ return (addr + 0x400000 - base_address); }
 
+EyeCrawl::cbyte EyeCrawl::readb(UINT_PTR addr, int count) {
+	cbyte x = cbyte();
+	for (int i=0; i<count; i++) x.add(readb(addr+i));
+	return x;
+}
+
 UCHAR EyeCrawl::readb(UINT_PTR addr) {
 	if (DLL_MODE) return *(UCHAR*)addr;
 	UCHAR buffer = 0;
@@ -242,6 +249,36 @@ std::string EyeCrawl::sreads(UINT_PTR address) {
 	return read;
 }
 
+// Returns an AOB string of the bytes at
+// the given address.
+// Warning: this function does not, and in
+// general, dont, include spaces in the AOB string.
+//
+std::string EyeCrawl::sreadb(UINT_PTR addr, int count) {
+	std::string str = "";
+	if (count==0) return str; else {
+		for (int i=0; i<count; i++){
+			str += to_str(readb(addr+i));
+			//if (i!=count-1) str+=" ";
+		}
+	}
+	return str;
+}
+
+std::vector<UCHAR> EyeCrawl::preadb(UINT_PTR addr, int count) {
+	std::vector<UCHAR>x = std::vector<UCHAR>();
+	if (count != 0){
+		for (int i=0; i<count; i++){
+			x.push_back(readb(addr+i));
+		}
+	}
+	return x;
+}
+
+bool EyeCrawl::write(UINT_PTR addr, EyeCrawl::cbyte x){
+	return EyeCrawl::write(addr, x.bytes);
+}
+
 bool EyeCrawl::write(UINT_PTR addr, UCHAR v){
 	if (DLL_MODE) *(UCHAR*)(addr) = v;
 	return WriteProcessMemory(proc,reinterpret_cast<void*>(addr),&v,1,0);
@@ -285,6 +322,14 @@ bool EyeCrawl::write(UINT_PTR addr, double v){
 bool EyeCrawl::write(UINT_PTR addr, std::string v){
 	if (DLL_MODE) *(const char**)(addr) = v.c_str();
 	return WriteProcessMemory(proc,reinterpret_cast<void*>(addr),v.c_str(),v.length(),0);
+}
+
+bool EyeCrawl::write(UINT_PTR addr, std::vector<UCHAR>x){
+	bool result = false;
+	for (int i=0; i<x.size(); i++){
+		result = EyeCrawl::write(addr+i, x[i]);
+	}
+	return result;
 }
 
 void EyeCrawl::open(HANDLE h) {
@@ -1210,7 +1255,7 @@ std::string EyeCrawl::disassemble(UINT_PTR addr, int count, info_mode extra_info
 UCHAR EyeCrawl::to_byte(char* x) {
 	if (lstrlenA(x)<2) return 0;
 	if (x[0]=='?' && x[1]=='?') return 0;
-	UCHAR b=0;
+	UCHAR b = 0;
 	for (int i=0;i<16;i++){
 		if (x[0]==c_ref1[i]) b+=c_ref2[i]*16;
 		if (x[1]==c_ref1[i]) b+=i;
@@ -1219,7 +1264,7 @@ UCHAR EyeCrawl::to_byte(char* x) {
 }
 
 std::string EyeCrawl::to_str(UCHAR b) {
-	std::string x="";
+	std::string x = "";
 	x += c_ref1[b/16];
 	x += c_ref1[b%16];
 	return x;
@@ -1233,15 +1278,136 @@ std::string EyeCrawl::to_str(UINT_PTR address) {
 	return str;
 }
 
+UINT_PTR EyeCrawl::to_addr(char* non_hex_addr){
+	UINT_PTR addr = 0;
+	std::istringstream reader(non_hex_addr);
+	reader >> std::hex >> addr;
+	return addr;
+}
+
+std::string EyeCrawl::to_bytes(UINT_PTR addr) {
+	std::string str = to_str(addr), le = "";
+	le += str[6],le += str[7];
+	le += str[4],le += str[5];
+	le += str[2],le += str[3];
+	le += str[0],le += str[1];
+	return le;
+}
+
+short EyeCrawl::to_short(UCHAR b1, UCHAR b2){
+	short v = 0;
+	v = b2;
+	v <<= 8; // bit shifting yay
+	v |= b1;
+	return v;
+}
+
+int EyeCrawl::to_int(UCHAR b1, UCHAR b2, UCHAR b3, UCHAR b4){
+	return int((UCHAR)(b1) << 24 |
+			   (UCHAR)(b2) << 16 |
+			   (UCHAR)(b3) << 8  |
+			   (UCHAR)(b4));
+}
+
+UINT_PTR EyeCrawl::pbtodw(UCHAR* b){
+	return	(b[0])		 |
+			(b[1] << 8)	 |
+			(b[2] << 16) |
+			(b[3] << 24);
+}
+
+UCHAR* EyeCrawl::dwtopb(UINT_PTR v) {
+	UCHAR* data = new UCHAR[sizeof(UINT_PTR)];
+	memcpy(data,&v,sizeof(UINT_PTR));
+	return data;
+}
+
+void EyeCrawl::cbyte::add(UCHAR b) {
+	bytes.push_back(b);
+}
+
+size_t EyeCrawl::cbyte::size() {
+	return bytes.size();
+}
+
+std::string EyeCrawl::cbyte::to_string(){
+	std::string str = "";
+	for (int i=0;i<bytes.size();i++){
+		str += to_str(bytes[i]);
+		if (i!=(size()-1))
+			str += ", ";
+		else
+			str += ".";
+	}
+	return str;
+};
+
+EyeCrawl::cbyte::cbyte(){
+	bytes = std::vector<UCHAR>();
+};
+
+EyeCrawl::cbyte::cbyte(std::string saob) {
+	bytes = std::vector<UCHAR>();
+	std::string newstr;
+	for (char c : saob) if (c!=0x20) newstr += c;
+	if (newstr.length()/2>0 && newstr.length()%2==0){
+		for (int i=0; i<newstr.length(); i+=2){
+			char s[3];
+			s[0] = newstr[i];
+			s[1] = newstr[i+1];
+			s[2] = '\0';
+			add(to_byte(s));
+		}
+	}
+}
+
+EyeCrawl::cbyte::cbyte(UCHAR* xbytes) {
+	bytes = std::vector<UCHAR>();
+	if (sizeof(xbytes) > 0){
+		for (int i=0;i<sizeof(xbytes);i++){
+			add(xbytes[i]);
+		}
+	}
+}
+
 // -----------------------------------------------------------
 // ---------------- EyeCrawl Memory Utility ------------------
 // -----------------------------------------------------------
-UINT_PTR EyeCrawl::util::valloc(ULONG_PTR size) {
-	return (UINT_PTR)VirtualAllocEx(proc, reinterpret_cast<void*>(0), size, 0x1000 | 0x2000, 0x40);
+
+// Allocates [size] number of bytes
+// with READWRITE_EXECUTE privileges
+UINT_PTR EyeCrawl::util::valloc(ULONG_PTR size, ULONG_PTR protect) {
+	return (UINT_PTR)VirtualAllocEx(proc, reinterpret_cast<void*>(0), size, 0x1000|0x2000, protect);
 }
 
 bool EyeCrawl::util::vfree(UINT_PTR address, ULONG_PTR size) {
 	return VirtualFreeEx(proc, reinterpret_cast<void*>(address), size, MEM_RELEASE);
+}
+
+HANDLE EyeCrawl::util::startthread(UINT_PTR func_address) {
+	return CreateRemoteThread(proc,0,0,(LPTHREAD_START_ROUTINE)func_address,0,0,0);
+}
+
+void EyeCrawl::util::startthreadasync(UINT_PTR func_address,int max_wait) {
+	HANDLE hThread = startthread(func_address);
+	WaitForSingleObject(hThread,(UINT_PTR)max_wait);
+	CloseHandle(hThread);
+}
+
+// Allocates a string in another processes memory.
+// Remember to use freestr to free the string
+// at this location when you are finished, just
+// as you would use delete[] normally.
+// 
+UINT_PTR EyeCrawl::util::newstr(std::string str){
+	UINT_PTR loc = valloc(((str.length()/4)+1)*4,PAGE_READWRITE);
+	write(loc,str);
+	return loc;
+}
+
+bool EyeCrawl::util::freestr(UINT_PTR location){
+	std::string str = sreads(location);
+	return vfree(location,((str.length()/4)+1)*4);
 }
 
 RESULTS EyeCrawl::util::scan(UINT_PTR begin, UINT_PTR end, const char* aob, const char* mask) {
@@ -1492,8 +1658,8 @@ std::string EyeCrawl::util::calltype(UINT_PTR func) {
 UINT_PTR EyeCrawl::util::debug32(UINT_PTR address, UCHAR r32, int offset) {
 	ULONG_PTR size=5,nop=0,isize=0,d=0;
 	UINT_PTR value=0,at=0,mask=0xABCDEF,
-			 code_loc=valloc(48),
-			 trace_loc=valloc(4);
+			 code_loc=valloc(48,PAGE_EXECUTE_READWRITE),
+			 trace_loc=valloc(4,PAGE_READWRITE);
 
 	// Figure out how many left over bytes
 	// from an instruction we might overwrite
@@ -1608,8 +1774,8 @@ RESULTS EyeCrawl::util::debug32(UINT_PTR address, UCHAR r32) {
 	RESULTS values=RESULTS();
 	ULONG_PTR size=5,nop=0,isize=0,d=0;
 	UINT_PTR value=0,at=0,mask=0xABCDEF,
-			 code_loc=valloc(256),
-			 trace_loc=valloc(64);
+			 code_loc=valloc(256,PAGE_EXECUTE_READWRITE),
+			 trace_loc=valloc(64,PAGE_READWRITE);
 
 	// Figure out how many left over bytes
 	// from an instruction we might overwrite
