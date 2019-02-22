@@ -1420,15 +1420,8 @@ RESULTS EyeCrawl::util::scan(UINT_PTR begin, UINT_PTR end, const char* aob, cons
 	UINT_PTR start			= begin,
 			 size			= lstrlenA(mask),
 			 at				= 0;
-	UCHAR* data				= new UCHAR[size];
 	UCHAR* buffer			= new UCHAR[buffersize];
-	
-	for (int i=0,j=0;i<size;i++,j+=2){
-		char c[2];
-		c[0]=aob[j];
-		c[1]=aob[j+1];
-		data[i]=to_byte(c);
-	}
+	cbyte data				= cbyte(aob);
 
 	while (start < end){
 		if (PMREAD(proc,reinterpret_cast<void*>(start),buffer,buffersize,0)){
@@ -1439,7 +1432,7 @@ RESULTS EyeCrawl::util::scan(UINT_PTR begin, UINT_PTR end, const char* aob, cons
 			__asm mov at,edi
 			unsigned char match=1;
 			for (UINT_PTR x=0; x<size; x++)
-				if (buffer[at+x]!=data[x] && mask[x]!='x')
+				if (buffer[at+x]!=data.bytes[x] && mask[x]!='x')
 					match=0;
 			if (match) results_list.push_back(start+at);
 		L2:	__asm cmp edi,buffersize
@@ -1449,7 +1442,6 @@ RESULTS EyeCrawl::util::scan(UINT_PTR begin, UINT_PTR end, const char* aob, cons
 		start += (buffersize-size)+1;
 	}
 	delete[] buffer;
-	delete[] data;
 
 	SetThreadPriority(self, oldpriority);
 	return results_list;
