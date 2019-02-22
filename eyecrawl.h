@@ -4,6 +4,7 @@
 #include <TlHelp32.h>
 #include <Psapi.h>
 #include <vector>
+#include <sstream>
 
 #define RESULTS std::vector<UINT_PTR>
 #define STR_READ_MAX 1024
@@ -125,14 +126,31 @@ namespace EyeCrawl {
 		}
 	};
 
+	struct cbyte {
+		std::vector<UCHAR>bytes;
+		cbyte();
+		cbyte(std::string);
+		cbyte(UCHAR*);
+		void		add(UCHAR);
+		size_t		size();
+		std::string to_string();
+	};
+
 	typedef instruction* pinstruction;
 	pinstruction disassemble(UINT_PTR);
 	std::string  disassemble(UINT_PTR, int, info_mode);
 	std::string to_str(UINT_PTR);
 	std::string to_str(UCHAR);
-	UCHAR to_byte(char*);
+	std::string to_bytes(UINT_PTR);
+	UCHAR		to_byte(char*);
+	UINT_PTR	to_addr(char*);
+	short		to_short(UCHAR, UCHAR);
+	int			to_int(UCHAR, UCHAR, UCHAR, UCHAR);
+	UINT_PTR	pbtodw(UCHAR*);
+	UCHAR*		dwtopb(UINT_PTR);
 
 	// memory reading
+	cbyte		readb(UINT_PTR, int);
 	UCHAR		readb(UINT_PTR);
 	char		readc(UINT_PTR);
 	USHORT		readus(UINT_PTR);
@@ -141,9 +159,12 @@ namespace EyeCrawl {
 	int			readi(UINT_PTR);
 	float		readf(UINT_PTR);
 	double		readd(UINT_PTR);
-	std::string sreads(UINT_PTR);
+	std::string sreads(UINT_PTR); // Reads a string at the given address
+	std::string sreadb(UINT_PTR, int); // Returns [int] number of bytes as an AOB string
+	std::vector<UCHAR>preadb(UINT_PTR, int);
 
 	// memory writing
+	bool		write(UINT_PTR, cbyte);
 	bool		write(UINT_PTR, UCHAR);
 	bool		write(UINT_PTR, char);
 	bool		write(UINT_PTR, USHORT);
@@ -153,6 +174,7 @@ namespace EyeCrawl {
 	bool		write(UINT_PTR, float);
 	bool		write(UINT_PTR, double);
 	bool		write(UINT_PTR, std::string);
+	bool		write(UINT_PTR, std::vector<UCHAR>);
 
 	// Utilities for debugging/scanning/getting functions/etc.
 	// WIP
@@ -164,10 +186,9 @@ namespace EyeCrawl {
 			ULONG_PTR size;
 		};
 
-		// allocates virtual memory
-		// at a random location,
-		// with EXECUTE_READWRITE access
-		UINT_PTR valloc(ULONG_PTR);
+		// allocates virtual memory at a random location,
+		// with the provided access
+		UINT_PTR valloc(ULONG_PTR, ULONG_PTR);
 		// frees allocated virtual memory
 		bool vfree(UINT_PTR, ULONG_PTR);
 
@@ -216,9 +237,16 @@ namespace EyeCrawl {
 		// 
 		// You can thank static for this awesomeness (static#8737)
 		// 
-		UINT_PTR debug32(UINT_PTR, UCHAR, int);
-		RESULTS debug32(UINT_PTR, UCHAR);
+		UINT_PTR	debug32(UINT_PTR, UCHAR, int);
+		RESULTS		debug32(UINT_PTR, UCHAR);
 		std::string readout32(UINT_PTR, UCHAR);
+
+		// Remote-process functions
+		// for assisting in external applications
+		HANDLE		startthread(UINT_PTR);
+		void		startthreadasync(UINT_PTR, int);
+		UINT_PTR	newstr(std::string);
+		bool		freestr(UINT_PTR);
 	}
 }
 
