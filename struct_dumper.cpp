@@ -19,7 +19,7 @@ int main(){
 	if (handle == INVALID_HANDLE_VALUE) {
 		std::cout << "Could not find a program to open...\n\n";
 	} else {
-		EyeCrawl::set(handle);
+		EyeCrawl::open(handle);
     
     		UINT_PTR gettop = EyeCrawl::aslr(0x7F1F40);
     		UINT_PTR readproto = EyeCrawl::aslr(0x65A7E0);
